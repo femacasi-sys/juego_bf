@@ -1,0 +1,3329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Outbreak: Código Genético</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>/* ═══════════════════════════════════════════
+   OUTBREAK: CÓDIGO GENÉTICO — Stylesheet v2
+   ═══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
+:root {
+  --bg:      #020d08;
+  --bg2:     #041209;
+  --panel:   #071a10;
+  --border:  #0f3d1e;
+  --glow:    #00ff6a;
+  --glow2:   #00c453;
+  --glow3:   #00ffc8;
+  --red:     #ff2d55;
+  --amber:   #ffb700;
+  --purple:  #a78bfa;
+  --blue:    #60a5fa;
+  --text:    #b8ffd0;
+  --muted:   #3a6647;
+  --white:   #e8fff2;
+  --life-active: #00ff6a;
+  --life-lost:   #1a3322;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── BACKGROUND EFFECTS ─────────────────── */
+.dna-canvas {
+  position: fixed; inset: 0;
+  opacity: 0.06; pointer-events: none; z-index: 0;
+}
+.scanlines {
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
+  );
+  pointer-events: none; z-index: 1;
+}
+.vignette {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.7) 100%);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── MAIN LAYOUT ─────────────────────────── */
+.game-root {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; overflow: hidden;
+}
+.game-container {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 860px;
+  padding: 0 20px 80px;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 0;
+}
+.game-container::-webkit-scrollbar { width: 3px; }
+.game-container::-webkit-scrollbar-track { background: transparent; }
+.game-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── HUD BAR ─────────────────────────────── */
+.hud-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0 10px;
+  position: sticky; top: 0; background: var(--bg); z-index: 10;
+  margin-bottom: 24px;
+}
+.hud-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px; font-weight: 900;
+  letter-spacing: 3px; color: var(--glow2);
+  text-transform: uppercase;
+}
+.hud-center {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.hud-lives {
+  display: flex; gap: 6px; align-items: center;
+}
+.hud-lives-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+  letter-spacing: 2px; margin-right: 4px;
+}
+.life-dna {
+  width: 18px; height: 22px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: space-around;
+  transition: all 0.4s ease;
+}
+.life-dna .strand {
+  width: 100%; height: 3px;
+  border-radius: 2px;
+  transition: all 0.4s ease;
+}
+.life-dna.active .strand { background: var(--life-active); box-shadow: 0 0 6px var(--glow); }
+.life-dna.active .strand:nth-child(2) { width: 70%; }
+.life-dna.active .strand:nth-child(3) { width: 85%; }
+.life-dna.lost .strand { background: var(--life-lost); box-shadow: none; }
+
+.hud-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted); letter-spacing: 2px;
+}
+.hud-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted); letter-spacing: 1px;
+  text-align: right;
+}
+.hud-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--red);
+  margin-right: 5px;
+  animation: pulse-red 1.2s ease-in-out infinite;
+}
+@keyframes pulse-red {
+  0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(255,45,85,0.7); }
+  50%      { opacity:0.6; box-shadow:0 0 0 5px rgba(255,45,85,0); }
+}
+
+/* ── SCENE LABEL ─────────────────────────── */
+.scene-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 4px;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 16px;
+  animation: fade-in 0.6s ease forwards 0.2s; opacity: 0;
+}
+
+/* ── NARRATIVE BOX ───────────────────────── */
+.narrative-box {
+  background: linear-gradient(135deg,
+    rgba(7,26,16,0.96) 0%,
+    rgba(2,13,8,0.99) 100%
+  );
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--glow2);
+  border-radius: 1px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0,196,83,0.04), inset 0 1px 0 rgba(0,255,106,0.04);
+  animation: fade-in 0.4s ease forwards;
+}
+.narrative-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--glow2), transparent);
+  opacity: 0.35;
+}
+.char-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+}
+.char-player   { color: var(--glow3); }
+.char-mentora  { color: var(--amber); }
+.char-sistema  { color: var(--purple); }
+.char-analista { color: var(--blue); }
+.char-director { color: var(--red); }
+.char-narrator { color: var(--muted); font-style: italic; }
+
+.narrative-text {
+  font-size: 20px; font-weight: 300;
+  line-height: 1.85; color: var(--white);
+  white-space: pre-wrap;
+}
+.cursor-blink {
+  display: inline-block; width: 8px; height: 15px;
+  background: var(--glow); margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.85s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ── CHOICES ─────────────────────────────── */
+.choices-container {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 6px;
+  animation: slide-up 0.4s ease forwards;
+}
+@keyframes slide-up {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.choice-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  font-size: 26px; font-weight: 300;
+  text-align: left; padding: 12px 18px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.5; letter-spacing: 0.2px;
+  position: relative;
+}
+.choice-btn:hover {
+  background: rgba(0,255,106,0.04);
+  border-color: var(--glow2);
+  border-left-color: var(--glow);
+  color: var(--white);
+  box-shadow: 0 0 18px rgba(0,255,106,0.07);
+  transform: translateX(3px);
+}
+.choice-btn.danger:hover {
+  background: rgba(255,45,85,0.05);
+  border-color: var(--red);
+  border-left-color: var(--red);
+  color: #ffb3c0;
+}
+.choice-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; color: var(--glow2);
+  margin-right: 12px; opacity: 0.8;
+}
+.choice-risk {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--red);
+  margin-left: 8px; opacity: 0.7;
+}
+
+.continue-btn {
+  background: transparent;
+  border: 1px solid var(--glow2); color: var(--glow);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; letter-spacing: 3px; text-transform: uppercase;
+  padding: 9px 20px; cursor: pointer;
+  transition: all 0.18s ease;
+  animation: fade-in 0.4s ease forwards;
+}
+.continue-btn:hover {
+  background: rgba(0,255,106,0.07);
+  box-shadow: 0 0 18px rgba(0,255,106,0.18);
+  border-color: var(--glow);
+}
+.continue-wrap { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* ── ALERT BARS ──────────────────────────── */
+.alert-bar {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; letter-spacing: 1.5px;
+  padding: 9px 14px; margin-bottom: 14px;
+  text-transform: uppercase;
+  animation: fade-in 0.3s ease forwards;
+}
+.alert-danger  { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.3); color:var(--red); }
+.alert-success { background:rgba(0,255,106,0.05); border:1px solid rgba(0,255,106,0.2); color:var(--glow); }
+.alert-info    { background:rgba(96,165,250,0.06); border:1px solid rgba(96,165,250,0.25); color:var(--blue); }
+.alert-warn    { background:rgba(255,183,0,0.06); border:1px solid rgba(255,183,0,0.3); color:var(--amber); }
+
+/* ── LIFE LOST FEEDBACK ──────────────────── */
+.life-lost-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(255,45,85,0.08);
+  pointer-events: none;
+  animation: flash-red 0.5s ease forwards;
+}
+@keyframes flash-red {
+  0%   { opacity:1; }
+  100% { opacity:0; }
+}
+.penalty-box {
+  border: 1px solid rgba(255,45,85,0.4);
+  background: rgba(255,45,85,0.05);
+  padding: 14px 18px; margin-bottom: 14px;
+  animation: fade-in 0.3s ease forwards;
+}
+.penalty-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px; letter-spacing: 3px;
+  color: var(--red); margin-bottom: 6px;
+}
+.penalty-text {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 24px; font-weight: 300;
+  color: #ffb3c0; line-height: 1.6;
+}
+
+/* ── GAME OVER SCREEN ────────────────────── */
+.game-over-screen {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(2,6,4,0.97);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px;
+  animation: gameover-in 0.8s ease forwards;
+}
+@keyframes gameover-in {
+  from { opacity:0; transform:scale(1.03); }
+  to   { opacity:1; transform:scale(1); }
+}
+.go-glitch {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: 900; color: var(--red);
+  letter-spacing: 8px; margin-bottom: 8px;
+  text-shadow: 0 0 30px rgba(255,45,85,0.6);
+  animation: glitch 2s infinite;
+}
+@keyframes glitch {
+  0%,92%,100% { text-shadow:0 0 30px rgba(255,45,85,0.6); transform:none; }
+  93%  { text-shadow:-3px 0 #00ff6a, 3px 0 #ff2d55; transform:translateX(2px); }
+  95%  { text-shadow:3px 0 #00ff6a, -3px 0 #ff2d55; transform:translateX(-2px); }
+  97%  { text-shadow:-2px 0 #00ff6a, 2px 0 #ff2d55; transform:translateX(1px); }
+}
+.go-subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px; color: var(--muted);
+  letter-spacing: 4px; text-transform: uppercase; margin-bottom: 28px;
+}
+.go-reason-box {
+  background: rgba(255,45,85,0.04);
+  border: 1px solid rgba(255,45,85,0.2);
+  max-width: 520px; padding: 20px 24px;
+  margin-bottom: 12px; text-align: left;
+}
+.go-reason-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px; letter-spacing: 3px;
+  color: var(--red); margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.go-reason-text {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 26px; font-weight: 300;
+  color: #cc8892; line-height: 1.7;
+}
+.go-lesson-box {
+  background: rgba(0,196,83,0.03);
+  border: 1px solid rgba(0,196,83,0.15);
+  max-width: 520px; padding: 16px 24px;
+  margin-bottom: 28px; text-align: left;
+}
+.go-lesson-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px; letter-spacing: 3px;
+  color: var(--glow2); margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.go-lesson-text {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 24px; font-weight: 300;
+  color: #7dd4a8; line-height: 1.7;
+}
+.go-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.go-btn {
+  background: transparent; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; letter-spacing: 3px; text-transform: uppercase;
+  padding: 11px 24px; transition: all 0.2s ease;
+}
+.go-btn-retry {
+  border: 1px solid var(--red); color: var(--red);
+}
+.go-btn-retry:hover {
+  background: rgba(255,45,85,0.1);
+  box-shadow: 0 0 20px rgba(255,45,85,0.2);
+}
+.go-btn-restart {
+  border: 1px solid var(--border); color: var(--muted);
+}
+.go-btn-restart:hover {
+  border-color: var(--muted); color: var(--text);
+}
+
+/* ── MINIGAME WRAPPER ────────────────────── */
+.minigame-wrapper {
+  background: rgba(4,18,9,0.98);
+  border: 1px solid var(--border);
+  padding: 22px; margin-bottom: 16px;
+  animation: fade-in 0.5s ease forwards;
+}
+.mg-header { margin-bottom: 18px; }
+.mg-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 4px; color: var(--glow2);
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.mg-subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; color: var(--muted); letter-spacing: 0.5px;
+}
+.mg-lives-warning {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--red); letter-spacing: 1px;
+  margin-top: 4px; opacity: 0.8;
+}
+.mg-section-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 8px; margin-top: 16px;
+}
+
+/* ── ACTION BUTTONS ──────────────────────── */
+.action-btn {
+  background: transparent;
+  border: 1px solid var(--glow2); color: var(--glow);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; letter-spacing: 3px; text-transform: uppercase;
+  padding: 10px 22px; cursor: pointer;
+  transition: all 0.18s ease; margin-top: 10px;
+}
+.action-btn:hover:not(:disabled) {
+  background: rgba(0,255,106,0.07);
+  box-shadow: 0 0 18px rgba(0,255,106,0.2);
+}
+.action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── BLAST MINIGAME ──────────────────────── */
+.blast-query {
+  background: rgba(2,13,8,0.9);
+  border: 1px solid var(--border);
+  padding: 12px 16px; margin-bottom: 14px;
+}
+.blast-query-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+  letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase;
+}
+.blast-seq {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px; letter-spacing: 2px;
+  line-height: 1.8; word-break: break-all;
+}
+.blast-hits { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.blast-hit {
+  border: 1px solid var(--border);
+  padding: 12px 16px; cursor: pointer;
+  transition: all 0.18s ease;
+  background: rgba(2,13,8,0.6);
+}
+.blast-hit:hover { border-color: var(--glow2); background: rgba(0,255,106,0.03); }
+.blast-hit.selected { border-color: var(--glow); background: rgba(0,255,106,0.06); box-shadow: 0 0 12px rgba(0,255,106,0.1); }
+.blast-hit.correct  { border-color: var(--glow); background: rgba(0,255,106,0.07); }
+.blast-hit.wrong    { border-color: var(--red); background: rgba(255,45,85,0.05); }
+.hit-meta {
+  display: flex; gap: 16px; align-items: center;
+  margin-bottom: 8px; flex-wrap: wrap;
+}
+.hit-org {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; color: var(--glow3); letter-spacing: 1px;
+}
+.hit-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+}
+.hit-score span { color: var(--amber); }
+.hit-alignment { font-family: 'Share Tech Mono', monospace; font-size: 22px; line-height: 2; letter-spacing: 1px; }
+.align-match    { color: var(--glow); }
+.align-mismatch { color: var(--red); font-weight: 700; text-decoration: underline; }
+.align-gap      { color: var(--purple); font-weight: 700; }
+
+/* ── CODON MINIGAME ──────────────────────── */
+.codon-table {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 16px; font-size: 20px;
+}
+.codon-cell {
+  background: rgba(2,13,8,0.95);
+  padding: 5px 4px; text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+}
+.codon-cell.header {
+  color: var(--glow2); font-size: 18px;
+  letter-spacing: 1px; background: rgba(7,26,16,0.9);
+  padding: 6px 4px;
+}
+.codon-code { color: var(--amber); font-size: 20px; }
+.codon-aa   { color: var(--text); font-size: 18px; margin-top: 1px; }
+.codon-stop { color: var(--red); }
+
+.mrna-display {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-bottom: 14px;
+}
+.codon-triplet {
+  background: rgba(7,26,16,0.8);
+  border: 1px solid var(--border);
+  padding: 6px 10px; cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px; letter-spacing: 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.codon-triplet:hover { border-color: var(--glow2); background: rgba(0,255,106,0.05); }
+.codon-triplet.selected  { border-color: var(--amber); background: rgba(255,183,0,0.07); }
+.codon-triplet.correct   { border-color: var(--glow); background: rgba(0,255,106,0.1); }
+.codon-triplet.wrong     { border-color: var(--red); background: rgba(255,45,85,0.08); }
+.codon-triplet.stop      { color: var(--red); }
+.codon-aa-label {
+  font-size: 16px; color: var(--muted); letter-spacing: 1px;
+}
+
+/* ── PHYLOGENETIC TREE ───────────────────── */
+.phylo-container { overflow-x: auto; margin-bottom: 16px; }
+.phylo-svg { min-width: 500px; }
+.phylo-node {
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.phylo-node circle {
+  fill: rgba(7,26,16,0.9);
+  stroke: var(--border); stroke-width: 1.5;
+  transition: all 0.18s ease;
+}
+.phylo-node:hover circle, .phylo-node.hover circle { stroke: var(--glow2); fill: rgba(0,255,106,0.08); }
+.phylo-node.selected circle  { stroke: var(--amber); fill: rgba(255,183,0,0.1); }
+.phylo-node.correct circle   { stroke: var(--glow); fill: rgba(0,255,106,0.15); }
+.phylo-node.wrong circle     { stroke: var(--red); fill: rgba(255,45,85,0.1); }
+.phylo-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; fill: var(--text); letter-spacing: 0.5px;
+}
+.phylo-branch { stroke: var(--border); stroke-width: 1; fill: none; }
+.phylo-distance { font-family: 'Share Tech Mono', monospace; font-size: 16px; fill: var(--muted); }
+.phylo-unknown-label { font-family: 'Orbitron', monospace; font-size: 18px; fill: var(--purple); }
+
+.distance-matrix {
+  border: 1px solid var(--border); margin-bottom: 14px;
+  overflow-x: auto;
+}
+.distance-matrix table {
+  border-collapse: collapse; width: 100%;
+  font-family: 'Share Tech Mono', monospace; font-size: 20px;
+}
+.distance-matrix th {
+  padding: 6px 10px; color: var(--glow2);
+  border: 1px solid var(--border);
+  background: rgba(7,26,16,0.9);
+  font-size: 18px; letter-spacing: 1px; text-align: center;
+}
+.distance-matrix td {
+  padding: 5px 10px; color: var(--text);
+  border: 1px solid var(--border);
+  text-align: center; background: rgba(2,13,8,0.7);
+}
+.distance-matrix td.low  { color: var(--glow); }
+.distance-matrix td.high { color: var(--red); }
+.distance-matrix td.self { color: var(--muted); }
+
+/* ── MUTATION CLASSIFICATION ─────────────── */
+.mut-pair {
+  border: 1px solid var(--border);
+  padding: 14px 16px; margin-bottom: 10px;
+  background: rgba(2,13,8,0.7);
+  transition: border-color 0.2s ease;
+}
+.mut-pair.answered-correct { border-color: var(--glow2); }
+.mut-pair.answered-wrong   { border-color: var(--red); }
+.mut-pair-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px; letter-spacing: 3px;
+  color: var(--muted); margin-bottom: 10px; text-transform: uppercase;
+}
+.mut-seqs { margin-bottom: 10px; }
+.mut-seq-row {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 4px;
+}
+.mut-seq-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+  width: 40px; text-align: right; flex-shrink: 0;
+}
+.mut-seq-bases {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px; letter-spacing: 2px;
+  word-break: break-all; line-height: 1.6;
+}
+.base-ref { color: var(--text); }
+.base-changed { color: var(--red); font-weight: 700; text-decoration: underline; }
+.base-inserted { color: var(--purple); font-weight: 700; }
+.base-deleted-marker { color: var(--amber); font-weight: 700; }
+
+.mut-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.mut-opt {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text); cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 12px; transition: all 0.15s ease;
+}
+.mut-opt:hover:not(:disabled) { border-color: var(--glow2); color: var(--glow); }
+.mut-opt.selected  { border-color: var(--amber); color: var(--amber); background: rgba(255,183,0,0.06); }
+.mut-opt.correct   { border-color: var(--glow); color: var(--glow); background: rgba(0,255,106,0.08); }
+.mut-opt.wrong     { border-color: var(--red); color: var(--red); background: rgba(255,45,85,0.06); }
+.mut-opt:disabled  { cursor: default; }
+
+/* ── DECISION PANEL ──────────────────────── */
+.decision-panel {
+  border: 1px solid var(--amber);
+  background: rgba(255,183,0,0.02);
+  padding: 18px 22px; margin-bottom: 16px;
+  position: relative;
+  animation: fade-in 0.5s ease forwards;
+}
+.decision-panel::before {
+  content: '⚠ DECISIÓN CRÍTICA';
+  font-family: 'Orbitron', monospace;
+  font-size: 16px; letter-spacing: 4px; color: var(--amber);
+  position: absolute; top: -8px; left: 14px;
+  background: var(--bg); padding: 0 8px;
+}
+.decision-btn {
+  width: 100%; background: transparent;
+  border: 1px solid rgba(255,183,0,0.25);
+  color: var(--white);
+  font-family: 'Exo 2', sans-serif;
+  font-size: 26px; font-weight: 300;
+  text-align: left; padding: 13px 16px;
+  cursor: pointer; margin-bottom: 7px;
+  transition: all 0.18s ease; line-height: 1.5;
+}
+.decision-btn:hover {
+  background: rgba(255,183,0,0.06);
+  border-color: var(--amber); color: var(--amber);
+  transform: translateX(3px);
+}
+
+/* ── ENDINGS ─────────────────────────────── */
+.ending-screen {
+  text-align: center; padding: 40px 20px;
+  animation: fade-in 1s ease forwards;
+}
+.ending-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(16px, 4vw, 24px);
+  font-weight: 900; color: var(--glow);
+  letter-spacing: 6px; margin-bottom: 10px;
+  text-shadow: 0 0 30px rgba(0,255,106,0.4);
+}
+.ending-subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px; color: var(--muted);
+  letter-spacing: 3px; margin-bottom: 28px;
+}
+.ending-quote {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 30px; font-style: italic; font-weight: 300;
+  color: var(--text); line-height: 1.9;
+  max-width: 520px; margin: 0 auto 24px;
+  border-left: 3px solid var(--glow2);
+  padding-left: 18px; text-align: left;
+  white-space: pre-line;
+}
+.ending-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px; color: var(--amber);
+  letter-spacing: 2px; margin-bottom: 24px;
+}
+.restart-btn {
+  background: transparent;
+  border: 1px solid var(--glow2); color: var(--glow);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; letter-spacing: 4px; text-transform: uppercase;
+  padding: 11px 26px; cursor: pointer;
+  transition: all 0.18s ease; margin: 6px;
+}
+.restart-btn:hover {
+  background: rgba(0,255,106,0.07);
+  box-shadow: 0 0 28px rgba(0,255,106,0.2);
+}
+
+/* ── POST CREDITS ────────────────────────── */
+.post-credits {
+  position: fixed; inset: 0;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 600;
+  animation: fade-in 2.5s ease forwards;
+}
+.post-credits-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 26px; color: var(--glow);
+  letter-spacing: 2px; text-align: center; line-height: 2.4;
+  animation: glow-text 2s ease-in-out infinite;
+}
+@keyframes glow-text {
+  0%,100% { text-shadow:0 0 10px rgba(0,255,106,0.8); }
+  50%      { text-shadow:0 0 30px rgba(0,255,106,1),0 0 60px rgba(0,255,106,0.4); }
+}
+
+/* ── DNA BASE COLORS ─────────────────────── */
+.base-A { color: #00ff6a; }
+.base-T { color: #ff2d55; }
+.base-G { color: #60a5fa; }
+.base-C { color: #ffb700; }
+.base-X { color: var(--purple); font-weight: 700; animation: glow-purple 1s ease-in-out infinite; }
+.base-gap { color: var(--muted); }
+@keyframes glow-purple {
+  0%,100% { text-shadow:0 0 4px #a78bfa; }
+  50%      { text-shadow:0 0 12px #a78bfa, 0 0 20px #7c3aed; }
+}
+
+/* ── UTILITIES ───────────────────────────── */
+@keyframes fade-in { from{opacity:0;} to{opacity:1;} }
+@keyframes shake {
+  0%,100% { transform:translateX(0); }
+  20%     { transform:translateX(-6px); }
+  40%     { transform:translateX(6px); }
+  60%     { transform:translateX(-4px); }
+  80%     { transform:translateX(4px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+.progress-bar-wrap {
+  height: 3px; background: rgba(255,255,255,0.04);
+  border-radius: 2px; margin-bottom: 14px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--glow2), var(--glow3));
+  border-radius: 2px; transition: width 0.5s ease;
+  box-shadow: 0 0 7px rgba(0,255,106,0.5);
+}
+
+/* ── RESPONSIVE ──────────────────────────── */
+@media (max-width: 600px) {
+  .codon-table { grid-template-columns: repeat(2,1fr); }
+  .hit-meta { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .go-glitch { font-size: 28px; letter-spacing: 4px; }
+}
+
+/* ═══════════════════════════════════════════
+   PASO 2 ADDITIONS — v3 styles
+   ═══════════════════════════════════════════ */
+
+/* ── HINT SYSTEM ─────────────────────────── */
+.hint-btn {
+  background: transparent;
+  border: 1px solid rgba(255,183,0,0.3);
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 2px;
+  padding: 5px 14px; cursor: pointer;
+  transition: all 0.18s ease;
+}
+.hint-btn:hover:not(:disabled) {
+  background: rgba(255,183,0,0.07);
+  border-color: var(--amber);
+}
+.hint-btn:disabled { opacity: 0.45; cursor: default; }
+.hint-box {
+  background: rgba(255,183,0,0.04);
+  border: 1px solid rgba(255,183,0,0.2);
+  border-left: 3px solid var(--amber);
+  padding: 10px 14px; margin-top: 8px;
+  font-family: 'Exo 2', sans-serif;
+  font-size: 24px; font-weight: 300;
+  color: #e0c882; line-height: 1.6;
+  animation: fade-in 0.3s ease forwards;
+}
+
+/* ── TIMER ───────────────────────────────── */
+.timer-wrap {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px; padding: 10px 14px;
+  background: rgba(255,45,85,0.04);
+  border: 1px solid rgba(255,45,85,0.2);
+}
+.timer-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px; font-weight: 700;
+  letter-spacing: 2px; min-width: 60px;
+  transition: color 0.5s ease;
+}
+.timer-bar-bg {
+  flex: 1; height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px; overflow: hidden;
+}
+.timer-bar-fill {
+  height: 100%; border-radius: 2px;
+  transition: width 1s linear, background 0.5s ease;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* ── SCORE TOAST ─────────────────────────── */
+.toast-container {
+  position: fixed; top: 70px; right: 20px;
+  z-index: 300; display: flex;
+  flex-direction: column; gap: 6px;
+  pointer-events: none;
+}
+.score-toast {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px; letter-spacing: 2px;
+  color: var(--glow);
+  background: rgba(0,196,83,0.08);
+  border: 1px solid rgba(0,196,83,0.25);
+  padding: 6px 14px;
+  animation: toast-anim 2s ease forwards;
+}
+@keyframes toast-anim {
+  0%   { opacity:0; transform:translateX(12px); }
+  15%  { opacity:1; transform:translateX(0); }
+  75%  { opacity:1; }
+  100% { opacity:0; transform:translateY(-8px); }
+}
+
+/* ── SEQ DIFF COLORS ─────────────────────── */
+.diff-ref-changed  { color: var(--amber); font-weight: 700; text-decoration: underline; }
+.diff-mut-changed  { color: var(--red); font-weight: 700; text-decoration: underline; }
+.diff-deleted      { color: var(--amber); font-weight: 700; text-decoration: line-through; }
+.diff-gap          { color: var(--muted); }
+.base-inserted     { color: var(--purple); font-weight: 700; }
+
+.seq-diff-block {
+  background: rgba(2,13,8,0.8);
+  border: 1px solid var(--border);
+  padding: 10px 14px; margin: 8px 0;
+}
+.seq-diff-row {
+  display: flex; align-items: flex-start;
+  gap: 10px; margin-bottom: 4px;
+}
+.seq-diff-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px; color: var(--muted);
+  letter-spacing: 1px; width: 36px;
+  flex-shrink: 0; padding-top: 1px;
+}
+.seq-diff-bases {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; letter-spacing: 2px;
+  line-height: 1.6; word-break: break-all;
+}
+
+/* ── BLAST IMPROVEMENTS ──────────────────── */
+.blast-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted); letter-spacing: 0.5px;
+}
+.blast-legend span { display: flex; align-items: center; gap: 4px; }
+.hit-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px; padding: 2px 7px;
+  border-radius: 2px; letter-spacing: 0.5px;
+}
+.hit-badge.evalue   { background:rgba(255,183,0,0.08); border:1px solid rgba(255,183,0,0.3); color:var(--amber); }
+.hit-badge.identity { background:rgba(0,255,200,0.06); border:1px solid rgba(0,255,200,0.2); color:var(--glow3); }
+.hit-badge.score    { background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.25); color:var(--purple); }
+.hit-explanation {
+  margin-top:8px; font-family:'Exo 2',sans-serif;
+  font-size: 14px; line-height:1.5;
+}
+.align-identity-bar {
+  margin-top:6px; margin-bottom:2px;
+  display:flex; align-items:center;
+  flex-wrap:wrap; gap:1px;
+}
+
+/* ── CODON GAME IMPROVEMENTS ─────────────── */
+.codon-grid-compact {
+  border: 1px solid var(--border);
+  margin-bottom: 14px; overflow-x: auto;
+}
+.codon-grid-row {
+  display: flex; border-bottom: 1px solid rgba(15,61,30,0.4);
+}
+.codon-grid-row:last-child { border-bottom: none; }
+.cgc-pair {
+  display: flex; gap: 4px; align-items: center;
+  padding: 4px 10px; flex: 1; min-width: 80px;
+  border-right: 1px solid rgba(15,61,30,0.4);
+}
+.cgc-pair:last-child { border-right: none; }
+.cgc-pair.stop-pair .cgc-codon { color: var(--red); }
+.cgc-pair.stop-pair .cgc-aa    { color: var(--red); }
+.cgc-codon {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; color: var(--amber); letter-spacing: 1px;
+}
+.cgc-aa {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+}
+
+.mrna-compare { margin-bottom: 14px; }
+.mrna-row {
+  display: flex; align-items: center;
+  flex-wrap: wrap; gap: 4px; margin-bottom: 6px;
+}
+.mrna-row-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+  letter-spacing: 2px; width: 68px; flex-shrink: 0;
+}
+.mrna-codon-chip {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px; letter-spacing: 2px;
+  padding: 4px 8px;
+  background: rgba(7,26,16,0.8);
+  border: 1px solid var(--border);
+  color: var(--text); position: relative;
+}
+.mrna-codon-chip.mutated {
+  border-color: var(--red); color: var(--red);
+  background: rgba(255,45,85,0.06);
+}
+.mutation-marker {
+  position: absolute; bottom: -12px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px; color: var(--red);
+}
+
+/* Protein chain animation */
+.protein-chain {
+  display: flex; align-items: center;
+  flex-wrap: wrap; gap: 2px;
+  margin-bottom: 6px; min-height: 54px;
+}
+.aa-bead {
+  display: flex; flex-direction: column;
+  align-items: center; position: relative;
+  animation: bead-in 0.3s ease forwards;
+}
+@keyframes bead-in {
+  from { opacity:0; transform:scale(0.6) translateY(-4px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+.aa-bead.hidden-bead { opacity: 0; }
+.aa-codon {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--amber); letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+.aa-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; color: var(--glow);
+  background: rgba(7,26,16,0.9);
+  border: 1px solid var(--border);
+  padding: 3px 6px; letter-spacing: 0.5px;
+}
+.aa-bead.stop-bead .aa-name { color: var(--red); border-color: rgba(255,45,85,0.4); }
+.aa-link {
+  width: 8px; height: 2px;
+  background: var(--border);
+  position: absolute; right: -5px; top: 50%;
+}
+.protein-summary {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 20px; color: var(--muted);
+  margin-bottom: 14px; letter-spacing: 0.5px;
+}
+
+.codon-selector {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 12px;
+}
+.codon-select-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+  padding: 8px 12px; cursor: pointer;
+  background: rgba(7,26,16,0.8);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease; min-width: 62px;
+}
+.codon-select-btn:hover:not(:disabled) {
+  border-color: var(--glow2); background: rgba(0,255,106,0.05);
+}
+.codon-select-btn.is-stop { border-color: rgba(255,45,85,0.3); }
+.codon-select-btn.selected  { border-color: var(--amber); background: rgba(255,183,0,0.07); }
+.codon-select-btn.correct   { border-color: var(--glow); background: rgba(0,255,106,0.1); }
+.codon-select-btn.wrong     { border-color: var(--red); background: rgba(255,45,85,0.08); }
+.cs-codon {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px; letter-spacing: 2px; color: var(--text);
+}
+.codon-select-btn.is-stop .cs-codon { color: var(--red); }
+.cs-aa  { font-family: 'Share Tech Mono', monospace; font-size: 18px; color: var(--muted); }
+.cs-pos { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: rgba(58,102,71,0.6); }
+
+/* ── PHYLO IMPROVEMENTS ──────────────────── */
+.dm-legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; margin-bottom: 14px; letter-spacing: 0.5px;
+}
+.dm-row-header {
+  padding: 5px 10px; color: var(--glow2);
+  border-right: 1px solid var(--border);
+  background: rgba(7,26,16,0.9);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 0.5px;
+  text-align: left; white-space: nowrap;
+  font-weight: 400;
+}
+.cg-row td, .cg-row .dm-row-header {
+  background: rgba(0,196,83,0.04) !important;
+}
+.dm-self     { color: var(--muted); }
+.dm-low      { color: var(--glow); font-weight: 600; }
+.dm-high     { color: var(--red); }
+.dm-highlight { background: rgba(255,183,0,0.06) !important; }
+
+/* ── MUTATION GAME IMPROVEMENTS ──────────── */
+.mut-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; color: var(--muted);
+  margin-bottom: 14px; letter-spacing: 0.5px;
+  padding: 8px 12px;
+  background: rgba(7,26,16,0.6);
+  border: 1px solid var(--border);
+}
+.mut-legend span { display: flex; align-items: center; gap: 5px; }
+.mut-pair-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 6px;
+}
+.mut-result-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 2px;
+  padding: 2px 8px;
+}
+.mut-result-badge.badge-ok  { color: var(--glow); border: 1px solid rgba(0,255,106,0.3); }
+.mut-result-badge.badge-err { color: var(--red);  border: 1px solid rgba(255,45,85,0.3); }
+.mut-context {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 22px; font-weight: 300;
+  color: var(--muted); margin-bottom: 8px;
+  font-style: italic;
+}
+.active-pair {
+  border-color: rgba(0,196,83,0.3) !important;
+  box-shadow: 0 0 12px rgba(0,196,83,0.06);
+}
+.mg-explanation {
+  margin-top: 8px; font-family: 'Exo 2', sans-serif;
+  font-size: 22px; line-height: 1.5; padding: 8px 12px;
+  border-left: 3px solid;
+}
+.mg-explanation.ok  { color: var(--glow);  border-left-color: var(--glow2); background: rgba(0,255,106,0.03); }
+.mg-explanation.err { color: #ffb3c0; border-left-color: var(--red);  background: rgba(255,45,85,0.03); }
+
+/* ── CHOICE STATES ───────────────────────── */
+.choice-btn.correct { border-left-color: var(--glow) !important; border-color: var(--glow2); color: var(--glow); }
+.choice-btn.wrong   { border-left-color: var(--red) !important; border-color: var(--red); color: #ffb3c0; }
+.choice-btn.selected { border-left-color: var(--amber); color: var(--amber); }
+
+.narrative-box.has-portrait{display:flex;gap:12px;align-items:flex-start;}
+.portrait-wrap{flex-shrink:0;width:38px;height:48px;}
+.portrait-wrap svg{width:38px;height:48px;display:block;}
+.narrative-content{flex:1;min-width:0;}
+.has-portrait:has(.char-mentora) .portrait-wrap{filter:drop-shadow(0 0 5px #ffb700);}
+.has-portrait:has(.char-analista) .portrait-wrap{filter:drop-shadow(0 0 5px #60a5fa);}
+.has-portrait:has(.char-director) .portrait-wrap{filter:drop-shadow(0 0 5px #ff2d55);}
+.has-portrait:has(.char-sistema) .portrait-wrap{filter:drop-shadow(0 0 5px #a78bfa);}
+.has-portrait:has(.char-player) .portrait-wrap{filter:drop-shadow(0 0 5px #00ffc8);}
+.splash-root{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:0;}
+.splash-center{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;text-align:center;}
+.ecg-svg{width:280px;height:44px;overflow:visible;}
+.ecg-line{stroke-dasharray:700;stroke-dashoffset:700;animation:ecg-draw 1.8s ease forwards;}
+@keyframes ecg-draw{to{stroke-dashoffset:0}}
+.splash-title{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;color:#00ff6a;letter-spacing:8px;text-shadow:0 0 40px rgba(0,255,106,.6);animation:fade-in 1s ease forwards .4s;opacity:0;}
+.splash-sub{font-family:'Share Tech Mono',monospace;font-size: 20px;color:#3a6647;letter-spacing:5px;animation:fade-in 1s ease forwards .7s;opacity:0;}
+.splash-tag{font-family:'Exo 2',sans-serif;font-size: 14px;font-weight:300;color:#4a8a60;line-height:1.8;max-width:340px;border-left:2px solid #0f3d1e;padding-left:14px;text-align:left;animation:fade-in 1s ease forwards 1.1s;opacity:0;}
+.splash-btn{background:transparent;border:1px solid #00c453;color:#00ff6a;font-family:'Orbitron',monospace;font-size: 12px;letter-spacing:4px;padding:14px 32px;cursor:pointer;transition:all .3s;animation:fade-in .5s ease forwards;}
+.splash-btn:hover{background:rgba(0,255,106,.08);letter-spacing:6px;box-shadow:0 0 30px rgba(0,255,106,.3);}
+.splash-footer{position:absolute;bottom:20px;font-family:'Share Tech Mono',monospace;font-size: 18px;color:#1a3a22;letter-spacing:3px;}
+.mute-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size: 20px;letter-spacing:1px;padding:4px 10px;cursor:pointer;transition:all .2s;}
+.mute-btn:hover{border-color:var(--glow2);color:var(--glow);}
+.rich-stage{display:block;font-style:italic;font-family:'Exo 2',sans-serif;font-weight:300;font-size: 18px;color:var(--muted);opacity:.85;padding:2px 0 2px 12px;border-left:2px solid rgba(58,102,71,.35);margin:6px 0;}
+.rich-scene-header{display:block;font-family:'Share Tech Mono',monospace;font-size: 18px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;opacity:.6;margin:10px 0 4px;padding-bottom:4px;border-bottom:1px solid rgba(15,61,30,.4);}
+.rich-pause{display:block;text-align:center;margin:10px 0;}
+.pause-dots{display:inline-flex;gap:6px;align-items:center;}
+.pd-dot{font-size: 40px;color:var(--muted);opacity:.3;animation:pd-breathe 1.4s ease-in-out infinite;line-height:1;}
+@keyframes pd-breathe{0%,100%{opacity:.15;transform:translateY(0)}50%{opacity:.7;transform:translateY(-3px)}}
+.rich-narrative{animation:rich-appear .3s ease forwards;}
+@keyframes rich-appear{from{opacity:.7}to{opacity:1}}
+.data-panel{background:rgba(2,8,4,.97);border:1px solid #0f3d1e;border-left:3px solid #00c453;padding:12px 16px;margin:8px 0;font-family:'Share Tech Mono',monospace;}
+.data-panel-header{font-size: 16px;letter-spacing:3px;color:#3a6647;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #0f3d1e;}
+.data-panel-row{display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(15,61,30,.3);}
+.data-panel-row:last-child{border-bottom:none;}
+.data-panel-label{font-size: 20px;color:#00c453;flex:1;}
+.data-panel-value{font-size: 22px;color:#b8ffd0;font-weight:600;}
+.data-panel-value.warn{color:#ffb700;}.data-panel-value.danger,.data-panel-value.zero{color:#ff2d55;}
+.hint-btn{background:transparent;border:1px solid rgba(255,183,0,.3);color:var(--amber);font-family:'Share Tech Mono',monospace;font-size: 18px;letter-spacing:2px;padding:5px 14px;cursor:pointer;transition:all .18s ease;}
+.hint-btn:hover:not(:disabled){background:rgba(255,183,0,.07);border-color:var(--amber);}
+.hint-btn:disabled{opacity:.45;cursor:default;}
+.hint-box{background:rgba(255,183,0,.04);border:1px solid rgba(255,183,0,.2);border-left:3px solid var(--amber);padding:10px 14px;margin-top:8px;font-family:'Exo 2',sans-serif;font-size: 24px;font-weight:300;color:#e0c882;line-height:1.6;}
+.timer-wrap{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 14px;background:rgba(255,45,85,.04);border:1px solid rgba(255,45,85,.2);}
+.timer-label{font-family:'Orbitron',monospace;font-size: 28px;font-weight:700;letter-spacing:2px;min-width:60px;transition:color .5s ease;}
+.timer-bar-bg{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;}
+.timer-bar-fill{height:100%;border-radius:2px;transition:width 1s linear,background .5s ease;}
+.toast-container{position:fixed;top:70px;right:20px;z-index:300;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.score-toast{font-family:'Share Tech Mono',monospace;font-size: 22px;letter-spacing:2px;color:var(--glow);background:rgba(0,196,83,.08);border:1px solid rgba(0,196,83,.25);padding:6px 14px;animation:toast-anim 2s ease forwards;}
+@keyframes toast-anim{0%{opacity:0;transform:translateX(12px)}15%{opacity:1;transform:translateX(0)}75%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+.diff-ref-changed{color:var(--amber);font-weight:700;text-decoration:underline;}.diff-mut-changed{color:var(--red);font-weight:700;text-decoration:underline;}.diff-deleted{color:var(--amber);font-weight:700;text-decoration:line-through;}.diff-gap{color:var(--muted);}.base-inserted{color:#a78bfa;font-weight:700;}
+.seq-diff-block{background:rgba(2,13,8,.8);border:1px solid var(--border);padding:10px 14px;margin:8px 0;}.seq-diff-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px;}.seq-diff-tag{font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);letter-spacing:1px;width:36px;flex-shrink:0;padding-top:1px;}.seq-diff-bases{font-family:'Share Tech Mono',monospace;font-size: 12px;letter-spacing:2px;line-height:1.6;word-break:break-all;}
+.blast-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);}.hit-badge{font-family:'Share Tech Mono',monospace;font-size: 18px;padding:2px 7px;border-radius:2px;}.hit-badge.evalue{background:rgba(255,183,0,.08);border:1px solid rgba(255,183,0,.3);color:var(--amber);}.hit-badge.identity{background:rgba(0,255,200,.06);border:1px solid rgba(0,255,200,.2);color:var(--glow3);}.hit-badge.score{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.25);color:#a78bfa;}
+.align-identity-bar{margin-top:6px;margin-bottom:2px;display:flex;align-items:center;flex-wrap:wrap;gap:1px;}
+.codon-grid-compact{border:1px solid var(--border);margin-bottom:14px;overflow-x:auto;}.codon-grid-row{display:flex;border-bottom:1px solid rgba(15,61,30,.4);}.codon-grid-row:last-child{border-bottom:none;}.cgc-pair{display:flex;gap:4px;align-items:center;padding:4px 10px;flex:1;min-width:80px;border-right:1px solid rgba(15,61,30,.4);}.cgc-pair:last-child{border-right:none;}.cgc-codon{font-family:'Share Tech Mono',monospace;font-size: 20px;color:var(--amber);letter-spacing:1px;}.cgc-aa{font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);}
+.mrna-compare{margin-bottom:14px;}.mrna-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:6px;}.mrna-row-label{font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);letter-spacing:2px;width:68px;flex-shrink:0;}.mrna-codon-chip{font-family:'Share Tech Mono',monospace;font-size: 22px;letter-spacing:2px;padding:4px 8px;background:rgba(7,26,16,.8);border:1px solid var(--border);color:var(--text);position:relative;}.mrna-codon-chip.mutated{border-color:var(--red);color:var(--red);background:rgba(255,45,85,.06);}.mutation-marker{position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);font-size: 16px;color:var(--red);}
+.protein-chain{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:6px;min-height:54px;}.aa-bead{display:flex;flex-direction:column;align-items:center;position:relative;animation:bead-in .3s ease forwards;}@keyframes bead-in{from{opacity:0;transform:scale(.6) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}.aa-bead.hidden-bead{opacity:0;}.aa-codon{font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--amber);letter-spacing:1px;margin-bottom:2px;}.aa-name{font-family:'Share Tech Mono',monospace;font-size: 16px;color:var(--glow);background:rgba(7,26,16,.9);border:1px solid var(--border);padding:3px 6px;}.aa-bead.stop-bead .aa-name{color:var(--red);border-color:rgba(255,45,85,.4);}.protein-summary{font-family:'Share Tech Mono',monospace;font-size: 20px;color:var(--muted);margin-bottom:14px;}
+.codon-selector{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}.codon-select-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;cursor:pointer;background:rgba(7,26,16,.8);border:1px solid var(--border);transition:all .15s ease;min-width:62px;}.codon-select-btn:hover:not(:disabled){border-color:var(--glow2);background:rgba(0,255,106,.05);}.codon-select-btn.selected{border-color:var(--amber);background:rgba(255,183,0,.07);}.codon-select-btn.correct{border-color:var(--glow);background:rgba(0,255,106,.1);}.codon-select-btn.wrong{border-color:var(--red);background:rgba(255,45,85,.08);}.cs-codon{font-family:'Share Tech Mono',monospace;font-size: 24px;letter-spacing:2px;color:var(--text);}.cs-aa{font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);}.cs-pos{font-family:'Share Tech Mono',monospace;font-size: 16px;color:rgba(58,102,71,.6);}
+.dm-legend{display:flex;gap:16px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size: 18px;margin-bottom:14px;}.dm-row-header{padding:5px 10px;color:var(--glow2);border-right:1px solid var(--border);background:rgba(7,26,16,.9);font-family:'Share Tech Mono',monospace;font-size: 18px;text-align:left;white-space:nowrap;}.cg-row td,.cg-row .dm-row-header{background:rgba(0,196,83,.04)!important;}.dm-self{color:var(--muted)}.dm-low{color:var(--glow);font-weight:600}.dm-high{color:var(--red)}.dm-highlight{background:rgba(255,183,0,.06)!important;}
+.mut-legend{display:flex;flex-wrap:wrap;gap:12px;font-family:'Share Tech Mono',monospace;font-size: 18px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:rgba(7,26,16,.6);border:1px solid var(--border);}.mut-pair-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}.mut-result-badge{font-family:'Share Tech Mono',monospace;font-size: 18px;letter-spacing:2px;padding:2px 8px;}.mut-result-badge.badge-ok{color:var(--glow);border:1px solid rgba(0,255,106,.3);}.mut-result-badge.badge-err{color:var(--red);border:1px solid rgba(255,45,85,.3);}.mut-context{font-family:'Exo 2',sans-serif;font-size: 22px;font-weight:300;color:var(--muted);margin-bottom:8px;font-style:italic;}
+.active-pair{border-color:rgba(0,196,83,.3)!important;box-shadow:0 0 12px rgba(0,196,83,.06);}.mg-explanation{margin-top:8px;font-family:'Exo 2',sans-serif;font-size: 22px;line-height:1.5;padding:8px 12px;border-left:3px solid;}.mg-explanation.ok{color:var(--glow);border-left-color:var(--glow2);background:rgba(0,255,106,.03);}.mg-explanation.err{color:#ffb3c0;border-left-color:var(--red);background:rgba(255,45,85,.03);}
+.choice-btn.correct{border-left-color:var(--glow)!important;border-color:var(--glow2);color:var(--glow);}.choice-btn.wrong{border-left-color:var(--red)!important;border-color:var(--red);color:#ffb3c0;}.choice-btn.selected{border-left-color:var(--amber);color:var(--amber);}
+.alert-warn{background:rgba(255,183,0,.06);border:1px solid rgba(255,183,0,.3);color:var(--amber);font-family:'Share Tech Mono',monospace;font-size: 20px;letter-spacing:2px;padding:10px 16px;margin-bottom:20px;text-transform:uppercase;}
+
+.mg-objective{background:rgba(0,196,83,0.07);border:1px solid rgba(0,196,83,0.35);border-left:4px solid var(--glow);padding:14px 18px;margin-bottom:18px;border-radius:2px;}
+.mg-objective-label{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;letter-spacing:3px;color:var(--glow);margin-bottom:8px;}
+.mg-objective-text{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:400;color:var(--white);line-height:1.6;}
+.mg-objective-hint{font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>/* OUTBREAK — Web Audio Engine */
+window.AudioEngine = (function() {
+  let ctx = null;
+  let masterGain = null;
+  let ambientNode = null;
+  let ambientRunning = false;
+  let enabled = true;
+
+  function init() {
+    if (ctx) return;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 0.55;
+      masterGain.connect(ctx.destination);
+    } catch(e) { enabled = false; }
+  }
+
+  function resume() {
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+
+  /* ── low-level helpers ── */
+  function osc(freq, type, dur, vol, startTime, endFreq) {
+    if (!enabled || !ctx) return;
+    const g = ctx.createGain();
+    g.connect(masterGain);
+    const o = ctx.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, startTime);
+    if (endFreq) o.frequency.linearRampToValueAtTime(endFreq, startTime + dur);
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+    o.connect(g);
+    o.start(startTime);
+    o.stop(startTime + dur + 0.05);
+  }
+
+  function noise(dur, vol, startTime, filterFreq) {
+    if (!enabled || !ctx) return;
+    const bufSize = ctx.sampleRate * dur;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = filterFreq || 800;
+    filter.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, startTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(masterGain);
+    src.start(startTime);
+    src.stop(startTime + dur + 0.05);
+  }
+
+  /* ── SOUND LIBRARY ── */
+  const sounds = {
+
+    // Typewriter key click
+    keyClick: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      noise(0.04, 0.06, t, 3000);
+      osc(1200, 'square', 0.03, 0.04, t);
+    },
+
+    // Scene transition — digital whoosh
+    sceneTransition: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(80, 'sawtooth', 0.4, 0.12, t, 40);
+      osc(320, 'sine', 0.3, 0.08, t + 0.1, 180);
+      noise(0.25, 0.05, t + 0.05, 600);
+      osc(1800, 'sine', 0.15, 0.06, t + 0.2, 900);
+    },
+
+    // Alert — danger
+    heartbeat: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(880, 'sine', 0.18, 0.06, t);
+      osc(880, 'sine', 0.10, 0.04, t + 0.08);
+    },
+
+    alertDanger: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        osc(880, 'square', 0.12, 0.15, t + i * 0.18);
+        osc(660, 'square', 0.08, 0.10, t + i * 0.18 + 0.06);
+      }
+      noise(0.4, 0.04, t, 400);
+    },
+
+    // Alert — info / success
+    alertInfo: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(523, 'sine', 0.12, 0.10, t);
+      osc(659, 'sine', 0.12, 0.10, t + 0.08);
+      osc(784, 'sine', 0.18, 0.12, t + 0.16);
+    },
+
+    // Choice selected
+    choiceSelect: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(440, 'triangle', 0.08, 0.09, t);
+      osc(554, 'triangle', 0.10, 0.09, t + 0.05);
+    },
+
+    // Wrong answer — penalty
+    wrongAnswer: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(220, 'sawtooth', 0.3, 0.18, t, 120);
+      osc(180, 'sawtooth', 0.25, 0.14, t + 0.1, 100);
+      noise(0.2, 0.07, t, 250);
+    },
+
+    // Correct answer
+    correctAnswer: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(523, 'sine', 0.1, 0.10, t);
+      osc(659, 'sine', 0.1, 0.10, t + 0.07);
+      osc(1047,'sine', 0.2, 0.12, t + 0.14);
+      osc(1319,'sine', 0.15, 0.08, t + 0.26);
+    },
+
+    // Life lost — DNA strand break
+    lifeLost: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(400, 'sawtooth', 0.5, 0.20, t, 60);
+      noise(0.3, 0.10, t + 0.1, 300);
+      osc(120, 'sine', 0.6, 0.15, t + 0.2, 60);
+    },
+
+    // Game over
+    gameOver: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      const freqs = [440, 392, 349, 311, 277, 220];
+      freqs.forEach((f, i) => {
+        osc(f, 'sawtooth', 0.35, 0.15 - i*0.015, t + i * 0.22);
+      });
+      noise(1.5, 0.06, t + 0.5, 200);
+    },
+
+    // Minigame complete
+    minigameComplete: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      const melody = [523,659,784,1047,784,1047,1319];
+      melody.forEach((f, i) => {
+        osc(f, 'sine', 0.15, 0.13 - i*0.01, t + i * 0.1);
+      });
+    },
+
+    // Ambient: DNA lab hum — continuous
+    startAmbient: function() {
+      if (!enabled || ambientRunning) return;
+      init(); resume();
+      ambientRunning = true;
+
+      const ambGain = ctx.createGain();
+      ambGain.gain.value = 0.04;
+      ambGain.connect(masterGain);
+
+      // low hum
+      const hum = ctx.createOscillator();
+      hum.type = 'sine';
+      hum.frequency.value = 55;
+      hum.connect(ambGain);
+      hum.start();
+
+      // mid rumble
+      const rumble = ctx.createOscillator();
+      rumble.type = 'sine';
+      rumble.frequency.value = 110;
+      const rumbleGain = ctx.createGain();
+      rumbleGain.gain.value = 0.025;
+      rumble.connect(rumbleGain);
+      rumbleGain.connect(masterGain);
+      rumble.start();
+
+      // subtle high frequency digital noise
+      const bufSize = ctx.sampleRate * 2;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+      const noiseSrc = ctx.createBufferSource();
+      noiseSrc.buffer = buf;
+      noiseSrc.loop = true;
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'highpass';
+      noiseFilter.frequency.value = 4000;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.value = 0.012;
+      noiseSrc.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noiseSrc.start();
+
+      ambientNode = { hum, rumble, noiseSrc, ambGain, rumbleGain, noiseGain };
+    },
+
+    stopAmbient: function() {
+      if (!ambientNode) return;
+      try {
+        ambientNode.hum.stop();
+        ambientNode.rumble.stop();
+        ambientNode.noiseSrc.stop();
+      } catch(e) {}
+      ambientRunning = false;
+      ambientNode = null;
+    },
+
+    // tension sting — for decision moments
+    tensionSting: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(55,  'sawtooth', 1.5, 0.10, t, 45);
+      osc(110, 'sawtooth', 1.2, 0.07, t + 0.3, 90);
+      osc(220, 'sine',     0.8, 0.05, t + 0.8);
+      noise(0.6, 0.05, t + 1.0, 150);
+    },
+
+    // ending fanfare variant A (neutralize — somber)
+    endingA: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      const m = [220,196,174,165,147];
+      m.forEach((f,i) => osc(f,'sine',0.6,0.12,t+i*0.4,f*0.85));
+    },
+
+    // ending fanfare variant B (contain — hopeful/uncertain)
+    endingB: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(261,'sine',0.5,0.10,t);
+      osc(329,'sine',0.5,0.10,t+0.3);
+      osc(392,'sine',0.8,0.12,t+0.6);
+      osc(329,'sine',0.5,0.08,t+1.1);
+    },
+
+    // ending fanfare variant C (communicate — ascending, wonder)
+    endingC: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      const m = [261,329,392,523,659,784,1047];
+      m.forEach((f,i) => osc(f,'sine',0.4,0.10+i*0.008,t+i*0.25));
+      noise(0.3,0.025,t+1.5,1500);
+    },
+
+    // hint revealed
+    hintReveal: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(880,'sine',0.08,0.07,t);
+      osc(1108,'sine',0.10,0.08,t+0.06);
+      osc(1318,'sine',0.12,0.09,t+0.12);
+    },
+
+    // score bonus popup
+    scoreBonus: function() {
+      init(); resume();
+      const t = ctx.currentTime;
+      osc(660,'triangle',0.08,0.08,t);
+      osc(880,'triangle',0.10,0.09,t+0.05);
+    },
+  };
+
+  return {
+    play: function(name) {
+      if (!enabled) return;
+      try { sounds[name] && sounds[name](); } catch(e) {}
+    },
+    startAmbient: function() {
+      if (!enabled) return;
+      try { sounds.startAmbient(); } catch(e) {}
+    },
+    stopAmbient: function() {
+      try { sounds.stopAmbient(); } catch(e) {}
+    },
+    setEnabled: function(val) { enabled = val; },
+    isEnabled: function() { return enabled; },
+    init,
+    resume,
+  };
+})();
+</script>
+  <script type="text/babel">const { useState, useEffect, useRef, useCallback } = React;
+
+/* OUTBREAK — Character Portraits v1 */
+const PORTRAIT_DATA = {
+
+"char-mentora": `<svg viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="80" fill="#070f09" rx="2"/>
+<rect x="1" y="1" width="62" height="78" fill="none" stroke="#c98a00" stroke-width="1" rx="1" opacity="0.6"/>
+<rect x="26" y="58" width="12" height="10" fill="#1a2e1c" rx="1"/>
+<rect x="8" y="65" width="48" height="16" fill="#1a2e1c" rx="2"/>
+<rect x="12" y="65" width="18" height="14" fill="#223325" rx="1"/>
+<rect x="34" y="65" width="18" height="14" fill="#223325" rx="1"/>
+<ellipse cx="32" cy="34" rx="17" ry="20" fill="#2a1a08"/>
+<ellipse cx="32" cy="18" rx="17" ry="8" fill="#5a3a10"/>
+<rect x="15" y="16" width="4" height="16" fill="#5a3a10" rx="2"/>
+<rect x="45" y="16" width="4" height="16" fill="#5a3a10" rx="2"/>
+<ellipse cx="32" cy="36" rx="13" ry="15" fill="#c8956a"/>
+<ellipse cx="26" cy="33" rx="3.5" ry="3" fill="#1a0e04"/>
+<ellipse cx="38" cy="33" rx="3.5" ry="3" fill="#1a0e04"/>
+<ellipse cx="26.5" cy="32.5" rx="1.5" ry="1.5" fill="#ffb700"/>
+<ellipse cx="38.5" cy="32.5" rx="1.5" ry="1.5" fill="#ffb700"/>
+<circle cx="27" cy="32" r="0.6" fill="#fff" opacity="0.8"/>
+<circle cx="39" cy="32" r="0.6" fill="#fff" opacity="0.8"/>
+<rect x="22" y="28" width="8" height="1.5" fill="#5a3a10" rx="1" transform="rotate(-5 22 28)"/>
+<rect x="34" y="28" width="8" height="1.5" fill="#5a3a10" rx="1" transform="rotate(5 34 28)"/>
+<path d="M27 43 Q32 46 37 43" stroke="#8a5535" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<rect x="21" y="30" width="9" height="6" fill="none" stroke="#ffb700" stroke-width="1" rx="2" opacity="0.8"/>
+<rect x="34" y="30" width="9" height="6" fill="none" stroke="#ffb700" stroke-width="1" rx="2" opacity="0.8"/>
+<line x1="30" y1="33" x2="34" y2="33" stroke="#ffb700" stroke-width="0.8" opacity="0.7"/>
+<rect x="4" y="67" width="18" height="8" fill="#2a1f00" stroke="#ffb700" stroke-width="0.5" rx="1"/>
+<text x="13" y="74" font-family="monospace" font-size="4" fill="#ffb700" text-anchor="middle">VARGAS</text>
+</svg>`,
+
+"char-analista": `<svg viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="80" fill="#060c10" rx="2"/>
+<rect x="1" y="1" width="62" height="78" fill="none" stroke="#2a6aaa" stroke-width="1" rx="1" opacity="0.6"/>
+<rect x="26" y="58" width="12" height="10" fill="#0e1e2e" rx="1"/>
+<rect x="6" y="64" width="52" height="17" fill="#0e1e2e" rx="2"/>
+<rect x="10" y="64" width="18" height="16" fill="#132030" rx="1"/>
+<rect x="36" y="64" width="18" height="16" fill="#132030" rx="1"/>
+<text x="32" y="76" font-family="monospace" font-size="5" fill="#60a5fa" text-anchor="middle" opacity="0.7">BIO</text>
+<ellipse cx="32" cy="34" rx="17" ry="20" fill="#0e1e2e"/>
+<rect x="14" y="14" width="36" height="8" fill="#0a0e14" rx="3"/>
+<ellipse cx="32" cy="37" rx="13" ry="15" fill="#7a9baf"/>
+<ellipse cx="26" cy="33" rx="3.5" ry="3" fill="#050a10"/>
+<ellipse cx="38" cy="33" rx="3.5" ry="3" fill="#050a10"/>
+<ellipse cx="26.5" cy="32.5" rx="1.8" ry="1.8" fill="#60a5fa"/>
+<ellipse cx="38.5" cy="32.5" rx="1.8" ry="1.8" fill="#60a5fa"/>
+<circle cx="27" cy="32" r="0.6" fill="#fff" opacity="0.8"/>
+<circle cx="39" cy="32" r="0.6" fill="#fff" opacity="0.8"/>
+<rect x="22" y="28.5" width="8" height="1.2" fill="#1a2a3a" rx="0.5"/>
+<rect x="34" y="28.5" width="8" height="1.2" fill="#1a2a3a" rx="0.5"/>
+<path d="M28 43 Q32 44.5 36 43" stroke="#4a6a7a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<rect x="12" y="32" width="3" height="5" fill="#60a5fa" rx="1" opacity="0.8"/>
+<rect x="4" y="67" width="16" height="8" fill="#050e18" stroke="#60a5fa" stroke-width="0.5" rx="1"/>
+<text x="12" y="74" font-family="monospace" font-size="4" fill="#60a5fa" text-anchor="middle">REYES</text>
+</svg>`,
+
+"char-director": `<svg viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="80" fill="#100608" rx="2"/>
+<rect x="1" y="1" width="62" height="78" fill="none" stroke="#8a1a1a" stroke-width="1" rx="1" opacity="0.6"/>
+<rect x="26" y="58" width="12" height="10" fill="#1e1010" rx="1"/>
+<rect x="6" y="64" width="52" height="17" fill="#1a1010" rx="2"/>
+<rect x="10" y="64" width="18" height="16" fill="#221515" rx="1"/>
+<rect x="36" y="64" width="18" height="16" fill="#221515" rx="1"/>
+<polygon points="32,64 29,72 32,79 35,72" fill="#8a1a1a" opacity="0.9"/>
+<rect x="15" y="14" width="34" height="42" fill="#1a1010" rx="8"/>
+<rect x="15" y="14" width="34" height="8" fill="#3a3030" rx="5"/>
+<rect x="15" y="14" width="8" height="20" fill="#3a3030" rx="3"/>
+<rect x="41" y="14" width="8" height="20" fill="#3a3030" rx="3"/>
+<ellipse cx="32" cy="37" rx="13" ry="15" fill="#9a7060"/>
+<ellipse cx="26" cy="33" rx="4" ry="2.5" fill="#0a0606"/>
+<ellipse cx="38" cy="33" rx="4" ry="2.5" fill="#0a0606"/>
+<ellipse cx="26" cy="33" rx="1.5" ry="1.5" fill="#8a1010"/>
+<ellipse cx="38" cy="33" rx="1.5" ry="1.5" fill="#8a1010"/>
+<rect x="21" y="29" width="9" height="1.5" fill="#2a1a1a" rx="0.5" transform="rotate(8 21 29)"/>
+<rect x="34" y="29" width="9" height="1.5" fill="#2a1a1a" rx="0.5" transform="rotate(-8 34 29)"/>
+<path d="M27 44 L37 44" stroke="#6a3030" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<circle cx="16" cy="70" r="3" fill="#1a0808" stroke="#ff2d55" stroke-width="0.8"/>
+<text x="16" y="72" font-family="monospace" font-size="3.5" fill="#ff2d55" text-anchor="middle">*</text>
+<rect x="22" y="67" width="20" height="8" fill="#150808" stroke="#ff2d55" stroke-width="0.5" rx="1"/>
+<text x="32" y="74" font-family="monospace" font-size="3.5" fill="#ff2d55" text-anchor="middle">DIRECTOR</text>
+</svg>`,
+
+"char-sistema": `<svg viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="80" fill="#080612" rx="2"/>
+<rect x="1" y="1" width="62" height="78" fill="none" stroke="#6d28d9" stroke-width="1" rx="1" opacity="0.7"/>
+<line x1="0" y1="20" x2="64" y2="20" stroke="#6d28d9" stroke-width="0.3" opacity="0.2"/>
+<line x1="0" y1="40" x2="64" y2="40" stroke="#6d28d9" stroke-width="0.3" opacity="0.2"/>
+<line x1="0" y1="60" x2="64" y2="60" stroke="#6d28d9" stroke-width="0.3" opacity="0.2"/>
+<line x1="20" y1="0" x2="20" y2="80" stroke="#6d28d9" stroke-width="0.3" opacity="0.2"/>
+<line x1="44" y1="0" x2="44" y2="80" stroke="#6d28d9" stroke-width="0.3" opacity="0.2"/>
+<polygon points="32,6 54,19 54,45 32,58 10,45 10,19" fill="#120a22" stroke="#a78bfa" stroke-width="1" opacity="0.9"/>
+<polygon points="32,14 48,23 48,41 32,50 16,41 16,23" fill="#0e0820" stroke="#7c3aed" stroke-width="0.5" opacity="0.7"/>
+<circle cx="24" cy="30" r="6" fill="#1a0e2e"/>
+<circle cx="24" cy="30" r="4" fill="#0a0618"/>
+<circle cx="24" cy="30" r="2.5" fill="#7c3aed" opacity="0.9"/>
+<circle cx="24" cy="30" r="1" fill="#a78bfa"/>
+<circle cx="25" cy="29" r="0.5" fill="#fff" opacity="0.8"/>
+<circle cx="40" cy="30" r="6" fill="#1a0e2e"/>
+<circle cx="40" cy="30" r="4" fill="#0a0618"/>
+<circle cx="40" cy="30" r="2.5" fill="#7c3aed" opacity="0.9"/>
+<circle cx="40" cy="30" r="1" fill="#a78bfa"/>
+<circle cx="41" cy="29" r="0.5" fill="#fff" opacity="0.8"/>
+<circle cx="24" cy="30" r="5.5" fill="none" stroke="#a78bfa" stroke-width="0.5" opacity="0.4" stroke-dasharray="2,2"/>
+<circle cx="40" cy="30" r="5.5" fill="none" stroke="#a78bfa" stroke-width="0.5" opacity="0.4" stroke-dasharray="2,2"/>
+<rect x="22" y="43" width="20" height="5" fill="#0a0618" stroke="#7c3aed" stroke-width="0.5" rx="1"/>
+<text x="32" y="47" font-family="monospace" font-size="3.5" fill="#a78bfa" text-anchor="middle">10110</text>
+<rect x="4" y="62" width="56" height="14" fill="#0e0820" stroke="#6d28d9" stroke-width="0.5" rx="1"/>
+<text x="32" y="71" font-family="monospace" font-size="4" fill="#a78bfa" text-anchor="middle">SISTEMA IA v7.4</text>
+</svg>`,
+
+"char-player": `<svg viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="80" fill="#020d08" rx="2"/>
+<rect x="1" y="1" width="62" height="78" fill="none" stroke="#00c453" stroke-width="1" rx="1" opacity="0.5"/>
+<rect x="8" y="63" width="48" height="18" fill="#041a0e" rx="2"/>
+<line x1="28" y1="63" x2="24" y2="80" stroke="#0f3d1e" stroke-width="1"/>
+<line x1="36" y1="63" x2="40" y2="80" stroke="#0f3d1e" stroke-width="1"/>
+<rect x="27" y="57" width="10" height="8" fill="#041a0e" rx="1"/>
+<ellipse cx="32" cy="35" rx="17" ry="20" fill="#041a0e"/>
+<ellipse cx="32" cy="35" rx="17" ry="20" fill="none" stroke="#00ff6a" stroke-width="0.8" opacity="0.4"/>
+<circle cx="25" cy="33" r="3" fill="#020d08"/>
+<circle cx="39" cy="33" r="3" fill="#020d08"/>
+<circle cx="25" cy="33" r="1.8" fill="#00ffc8" opacity="0.9"/>
+<circle cx="39" cy="33" r="1.8" fill="#00ffc8" opacity="0.9"/>
+<circle cx="25.5" cy="32.5" r="0.7" fill="#fff" opacity="0.7"/>
+<circle cx="39.5" cy="32.5" r="0.7" fill="#fff" opacity="0.7"/>
+<circle cx="25" cy="33" r="4" fill="none" stroke="#00ffc8" stroke-width="0.5" opacity="0.3"/>
+<circle cx="39" cy="33" r="4" fill="none" stroke="#00ffc8" stroke-width="0.5" opacity="0.3"/>
+<path d="M15 22 L15 27 M15 22 L20 22" stroke="#00ff6a" stroke-width="0.8" opacity="0.4"/>
+<path d="M49 22 L49 27 M49 22 L44 22" stroke="#00ff6a" stroke-width="0.8" opacity="0.4"/>
+<path d="M15 44 L15 39 M15 44 L20 44" stroke="#00ff6a" stroke-width="0.8" opacity="0.4"/>
+<path d="M49 44 L49 39 M49 44 L44 44" stroke="#00ff6a" stroke-width="0.8" opacity="0.4"/>
+<rect x="10" y="67" width="16" height="8" fill="#020d08" stroke="#00c453" stroke-width="0.5" rx="1"/>
+<text x="18" y="74" font-family="monospace" font-size="4" fill="#00ffc8" text-anchor="middle">ANALISTA</text>
+</svg>`,
+
+"char-narrator": null,
+};
+
+const CharPortrait = function({ speakerClass }) {
+  const svg = PORTRAIT_DATA[speakerClass];
+  if (!svg) return null;
+  return React.createElement('div', {
+    className: 'char-portrait',
+    dangerouslySetInnerHTML: { __html: svg }
+  });
+};
+
+/* OUTBREAK: CÓDIGO GENÉTICO — Game Data v3 */
+
+const CODON_TABLE = {
+  AUG:"Met(inicio)",UUU:"Phe",UUC:"Phe",UUA:"Leu",UUG:"Leu",
+  CUU:"Leu",CUC:"Leu",CUA:"Leu",CUG:"Leu",AUU:"Ile",AUC:"Ile",AUA:"Ile",
+  GUU:"Val",GUC:"Val",GUA:"Val",GUG:"Val",UCU:"Ser",UCC:"Ser",UCA:"Ser",UCG:"Ser",
+  CCU:"Pro",CCC:"Pro",CCA:"Pro",CCG:"Pro",ACU:"Thr",ACC:"Thr",ACA:"Thr",ACG:"Thr",
+  GCU:"Ala",GCC:"Ala",GCA:"Ala",GCG:"Ala",UAU:"Tyr",UAC:"Tyr",
+  CAU:"His",CAC:"His",CAA:"Gln",CAG:"Gln",AAU:"Asn",AAC:"Asn",AAA:"Lys",AAG:"Lys",
+  GAU:"Asp",GAC:"Asp",GAA:"Glu",GAG:"Glu",UGU:"Cys",UGC:"Cys",UGG:"Trp",
+  CGU:"Arg",CGC:"Arg",CGA:"Arg",CGG:"Arg",AGU:"Ser",AGC:"Ser",AGA:"Arg",AGG:"Arg",
+  GGU:"Gly",GGC:"Gly",GGA:"Gly",GGG:"Gly",UAA:"STOP",UAG:"STOP",UGA:"STOP",
+};
+
+const MG1_DATA = {
+  title:"// BLAST — ALINEAMIENTO DE SECUENCIAS",
+  subtitle:"Encuentra el hit más significativo para la secuencia mutante desconocida",
+  lives_warning:"⚠ Una selección incorrecta = 1 vida perdida",
+  query:{ label:"SECUENCIA QUERY — Agente Desconocido CG-001", seq:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAGCAAGCATGC" },
+  hits:[
+    { id:"A", organism:"Pseudomonas aeruginosa (cepa PAO1)", evalue:"2e-18", identity:"94%", score:210,
+      ref:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAGCATGCATGC",
+      query:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAGCAAGCATGC",
+      correct:true,
+      explanation:"94% identidad, E-value 2e-18 (casi imposible por azar). Posición 42: T→A es un SNP clásico que altera la proteína de adhesión." },
+    { id:"B", organism:"Bacillus subtilis (cepa 168)", evalue:"5e-4", identity:"61%", score:88,
+      ref:"ATGCAGTTACGATCAGCATGCA--CATGCTTACGGATCAGCATGCATGC",
+      query:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAGCAAGCATGC",
+      correct:false,
+      explanation:"E-value 5e-4 ocurre frecuentemente por azar. 61% identidad es bajo. Los gaps indican distancia evolutiva real." },
+    { id:"C", organism:"Escherichia coli K-12", evalue:"1e-9", identity:"78%", score:140,
+      ref:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAGCATGCATGC",
+      query:"ATGCAGTTACGATCAGCATGCATGCATGCTTACGGATCAG-AAGCATGC",
+      correct:false,
+      explanation:"78% identidad y una deleción en posición 41 indican que no es el match más cercano, aunque E. coli sea bien conocida." }
+  ],
+  mutTypeQ:{
+    question:"¿Qué tipo de mutación presenta el mejor hit en la posición 42?",
+    options:["SNP (sustitución puntual)","Inserción","Deleción","Frameshift"],
+    correct:0,
+    explanation:"Posición 42: T→A. Un único nucleótido cambia sin insertar ni eliminar bases. Eso es un SNP. Un frameshift requiere inserción/deleción que no sea múltiplo de 3."
+  }
+};
+
+const MG2_DATA = {
+  title:"// TRADUCCIÓN — ANÁLISIS DE CODONES",
+  subtitle:"El gen de adhesión mutante tiene un codón de stop prematuro. Identifícalo.",
+  lives_warning:"⚠ Dos preguntas — cada error = 1 vida perdida",
+  original_mrna:"AUG CAG UUC GAU CAG CAA GCA UGC",
+  mutant_mrna:"AUG CAG UAG GAU CAG CAA GCA UGC",
+  question1:{
+    text:"Identifica el codón de STOP prematuro en la secuencia mutante:",
+    codons:["AUG","CAG","UAG","GAU","CAG","CAA","GCA","UGC"],
+    correct_idx:2,
+    explanation:"UAG es codón de stop (nonsense). La mutación UUC→UAG cambia Phe por una señal de terminación, truncando la proteína en solo 2 aminoácidos funcionales."
+  },
+  question2:{
+    text:"¿Cómo se clasifica este tipo de mutación puntual?",
+    options:["Mutación sinónima (silent) — no cambia el aminoácido","Mutación missense — cambia un aminoácido por otro","Mutación nonsense — convierte un codón en señal de stop","Mutación frameshift — desplaza el marco de lectura"],
+    correct:2,
+    explanation:"Una mutación nonsense convierte un codón de aminoácido en codón de stop, truncando la proteína. Distinta del missense (cambia AA) y del frameshift (desplaza toda la lectura)."
+  }
+};
+
+const MG3_DATA = {
+  title:"// FILOGENIA — ÁRBOL FILOGENÉTICO",
+  subtitle:"Ubica el agente CG-001 en el árbol usando la matriz de distancias genómicas",
+  lives_warning:"⚠ Dos preguntas — cada error = 1 vida perdida",
+  organisms:["Bacteria_Ref","Archaea_Ref","Eukarya_Ref","Virus_Ref","AGENTE_CG001"],
+  matrix:[
+    [0.00,0.72,0.85,0.91,0.18],
+    [0.72,0.00,0.68,0.93,0.74],
+    [0.85,0.68,0.00,0.88,0.83],
+    [0.91,0.93,0.88,0.00,0.94],
+    [0.18,0.74,0.83,0.94,0.00],
+  ],
+  tree_nodes:[
+    {id:"root",x:250,y:30,label:"LUCA",selectable:false},
+    {id:"bact",x:80,y:130,label:"Bacteria",selectable:false},
+    {id:"arch",x:200,y:130,label:"Archaea",selectable:false},
+    {id:"euk",x:320,y:130,label:"Eukarya",selectable:false},
+    {id:"virus",x:420,y:130,label:"Virus",selectable:false},
+    {id:"pos_A",x:60,y:220,label:"Posición A",selectable:true,hint:"Dentro de Bacteria"},
+    {id:"pos_B",x:175,y:220,label:"Posición B",selectable:true,hint:"Dentro de Archaea"},
+    {id:"pos_C",x:380,y:220,label:"Posición C",selectable:true,hint:"Dentro de Eukarya"},
+  ],
+  branches:[["root","bact"],["root","arch"],["root","euk"],["root","virus"],["bact","pos_A"],["arch","pos_B"],["euk","pos_C"]],
+  correct_pos:"pos_A",
+  explanation_correct:"✓ Correcto. Distancia CG001–Bacteria = 0.18 (mínimo de la fila). El agente es de linaje bacteriano con genes horizontalmente transferidos de Archaea.",
+  explanation_wrong:"✗ Revisa la fila AGENTE_CG001. El valor mínimo es 0.18 con Bacteria_Ref. Menor distancia = mayor cercanía evolutiva.",
+  question2:{
+    text:"La distancia CG001–Archaea es 0.74. ¿Qué podría explicar ese valor siendo CG001 bacteriano?",
+    options:["Error en la secuenciación — los datos no son fiables","Transferencia horizontal de genes (HGT) desde Archaea hacia la línea bacteriana de CG001","CG001 es un híbrido Bacteria-Archaea no clasificable","Distancias menores a 0.80 siempre indican el mismo dominio"],
+    correct:1,
+    explanation:"La HGT permite que organismos de distintos dominios compartan genes funcionales. CG001 es bacteriano pero incorporó módulos génicos arqueales, lo que explica su distancia inusualmente baja con Archaea y sus capacidades atípicas."
+  }
+};
+
+const MG4_DATA = {
+  title:"// CLASIFICACIÓN — MUTACIONES CLAVE",
+  subtitle:"Clasifica las 4 mutaciones del patógeno. Necesitas 3/4 correctas para continuar.",
+  lives_warning:"⚠ Cada error = 1 vida perdida — 120 segundos",
+  pass_threshold:3,
+  pairs:[
+    { id:1, gene:"GEN A — Proteína de adhesión",
+      context:"Afecta la unión receptor-ligando en células epiteliales",
+      ref:"ATGCAGTTCGAT", mut:"ATGCAGTTCAAT",
+      correct:1,
+      options:["SNP sinónimo (silent)","SNP missense","Inserción in-frame","Deleción frameshift"],
+      explanation:"Posición 10: C→A. Cambia GAT(Asp) por AAT(Asn) — diferente aminoácido, diferente carga. SNP missense que altera la afinidad de unión al receptor." },
+    { id:2, gene:"GEN B — Factor de resistencia",
+      context:"Confiere resistencia a antibióticos betalactámicos",
+      ref:"ATGCCATTCGATCAG", mut:"ATGCCATTCGATCAG",
+      correct:0,
+      options:["Sin mutación (secuencias idénticas)","SNP missense","Inserción in-frame","Deleción frameshift"],
+      explanation:"Las secuencias son idénticas: no hay mutación. El fenotipo de resistencia se mantiene porque la secuencia original ya codifica una betalactamasa funcional." },
+    { id:3, gene:"GEN C — Evasión inmune",
+      context:"Altera el reconocimiento por linfocitos T citotóxicos",
+      ref:"ATGCAGTTTGATCAGCAA", mut:"ATGCAGTTTGATCAGCAAGGC",
+      correct:1,
+      options:["SNP sinónimo (silent)","Inserción in-frame (+3 bases)","Inserción frameshift (+1 base)","Deleción frameshift"],
+      explanation:"Se insertan 3 bases (GGC=Gly). 3 es múltiplo de 3 → NO hay frameshift. Es una inserción in-frame que añade un aminoácido extra sin desplazar el marco de lectura." },
+    { id:4, gene:"GEN D — Regulador metabólico",
+      context:"Controla la síntesis de la cápsula protectora — IRREVERSIBLE",
+      ref:"ATGCAGTTCGATCAG", mut:"ATGCAGTTGATCAG",
+      correct:2,
+      options:["SNP sinónimo (silent)","Inserción in-frame","Deleción frameshift (−1 base)","SNP missense"],
+      explanation:"Se elimina 1 base (C en posición 9). 1 no es múltiplo de 3 → FRAMESHIFT. Todos los codones posteriores cambian. Esta mutación es irreversible con CRISPR estándar." }
+  ]
+};
+
+
+const SCENES = {
+
+  INTRO:{ type:"sequence", steps:[
+    { speaker:"VOZ EN OFF — IA DEL SISTEMA", speakerClass:"char-sistema",
+      text:"Año 2035.\n\nLa humanidad secuencia más datos biológicos en un día que en toda la primera década del siglo XXI.\n\nCada segundo: 40 millones de lecturas genómicas. Cada hora: 2 terabytes de secuencias nuevas.\n\nPero seguimos sin entender completamente lo que vemos.",
+      alert:{ type:"info", msg:"⚠ SISTEMA DE BIOANÁLISIS GLOBAL v7.4 — INICIALIZANDO PROTOCOLO DE CRISIS" } },
+    { speaker:null, speakerClass:"char-narrator",
+      text:"Pantalla de alerta:\n\n  BROTES DESCONOCIDOS — 17 PAÍSES\n  SECUENCIAS NO CLASIFICADAS — AUMENTO EXPONENCIAL\n  SIMILITUD CON BD CONOCIDAS — 0%",
+      alert:{ type:"danger", msg:"⚠ ALERTA BIOLÓGICA GLOBAL — NIVEL 4 — 17 JURISDICCIONES AFECTADAS" } },
+  ], next:"SCENE2" },
+
+  SCENE2:{ type:"sequence", steps:[
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Los sistemas automáticos fallaron hace seis horas. Los algoritmos de clasificación estándar devuelven null.\n\n(Te mira directo.)\n\nPor eso te llamamos a ti." },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"El paciente cero llegó desde la Amazonia. Fiebre 41.3C, colapso inmune progresivo, microbioma destruido en 48 horas.",
+      alert:{ type:"warn", msg:"◆ PACIENTE #001 — FIEBRE 41.3°C — FALLA INMUNE PROGRESIVA — ORIGEN: AMAZONAS, BR" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Pensamos que era contaminación de muestra. Error de secuenciación.\n\nHasta que llego el segundo caso. Desde Nigeria. Con la misma firma genética exacta.",
+      choices:[
+        { label:"Cuantos casos hay ahora?", next:"SCENE3", safe:true },
+        { label:"Podria ser coincidencia — secuencias similares aparecen naturalmente.", next:"SCENE3", safe:false,
+          penalty:{
+            reason:"Descartaste una senal epidemiologica significativa como coincidencia.",
+            lesson:"En epidemiologia genomica, dos casos con firma identica en continentes distintos en 72 horas tiene probabilidad de coincidencia cercana a cero. El escepticismo prematuro sin analisis cuantitativo es tan peligroso como el panico.",
+            narrativeConsequence:"Vargas te mira fijamente. 'Eso nos costo cuarenta minutos. Cuarenta minutos que el sistema uso para llegar a tres paises mas.'"
+          } },
+        { label:"Y el analisis de secuencia — que muestra?", next:"SCENE3", safe:true },
+      ] },
+  ], next:"SCENE3" },
+
+  SCENE3:{ type:"sequence", steps:[
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Cuarenta y siete casos confirmados en doce países. Todos con la misma firma genética. Todos en las ultimas 96 horas.\n\nY la secuencia esta cambiando. Pero no al azar.",
+      alert:{ type:"danger", msg:"⚠ 47 CASOS — 12 PAÍSES — ÚLTIMA ACTUALIZACIÓN: HACE 4 MINUTOS" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Tenemos tres hits candidatos en BLAST. Ninguno encaja perfectamente con la secuencia de CG-001.\n\nNecesitamos saber cuál es el más cercano evolutivamente antes de cualquier protocolo." },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(Abre el terminal. Te señala la silla.)\n\nBuscá el hit con el E-value más bajo — ese es el alineamiento estadísticamente más significativo. Después identificá qué tipo de mutación tiene respecto a la referencia.\n\nEmpeza." },
+  ], next:"MG1" },
+
+  MG1:{ type:"minigame", game:"blast", next:"SCENE4" },
+
+  SCENE4:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Analisis completado. CG-001 es de linaje Pseudomonas con SNP en posicion 42.\nAfecta directamente el gen de adhesion.",
+      alert:{ type:"success", msg:"✓ MATCH: Pseudomonas-like — SNP posición 42 — Identidad 94% — E-value 2e-18" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Pseudomonas con un SNP en la proteína de adhesión. Eso debería hacerlo menos efectivo, no mas.\n\nComo esta propagandose asi?" },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Por eso necesitamos el análisis de mRNA. Si hay un codon de stop prematuro, la proteína queda truncada.\nPero algunos fragmentos truncados son más activos que la proteína completa.",
+      choices:[
+        { label:"Tiene sentido — un dominio funcional puede quedar expuesto en la forma truncada.", next:"SCENE5", safe:true },
+        { label:"Eso no tiene sentido — una proteína truncada siempre pierde función.", next:"SCENE5", safe:false,
+          penalty:{
+            reason:"Afirmaste incorrectamente que las proteinas truncadas siempre son inactivas.",
+            lesson:"Las proteinas tienen dominios funcionales independientes. Una truncacion puede eliminar un dominio regulatorio inhibidor, dejando el dominio activo mas libre. Muchas oncoproteinas son versiones truncadas hiperfuncionales de proteinas normales.",
+            narrativeConsequence:"El Director, que escucha por el sistema de audio, interrumpe: 'Si ese analisis llega al comite, vamos a perder credibilidad. Reyes, verifica todo antes de seguir.'"
+          } },
+        { label:"Analicemos el mRNA antes de sacar conclusiones.", next:"SCENE5", safe:true },
+      ] },
+  ], next:"SCENE5" },
+
+  SCENE5:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"La pantalla muestra el mRNA del gen de adhesion mutante. Ocho codones.\nAlgo en el tercero no encaja.",
+      alert:{ type:"warn", msg:"◆ mRNA CG-001 GEN-ADHESIÓN — CARGADO — ANALIZAR CODONES" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Si hay un stop en posición 3, la proteina tiene dos aminoacidos funcionales.\n¿Cómo puede algo tan pequeño ser tan efectivo??" },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Los péptidos cortos pueden tener afinidades extraordinarias. El veneno de algunas serpientes son péptidos de 8 aminoácidos.\n\n(Se inclina hacia la pantalla.)\n\nNecesito dos cosas: en qué posición cae el codón de stop, y qué tipo de mutación lo generó. Missense, nonsense o frameshift — los tres tienen consecuencias terapéuticas distintas." },
+  ], next:"MG2" },
+
+  MG2:{ type:"minigame", game:"codon", next:"SCENE6" },
+
+  SCENE6:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Mutación nonsense confirmada. UAG en posicion 3.\nProteina truncada: Met-Gln-[STOP].",
+      alert:{ type:"info", msg:"ℹ PÉPTIDO ACTIVO: Met–Gln (2aa) — AFINIDAD RECEPTOR EPITELIAL TIPO III: CONFIRMADA" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Dos aminoacidos. Increible." },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"No es increíble. Es diseño. O algo que se parece mucho al diseño.\n\nAhora necesitamos saber dónde encaja esto en el árbol de la vida.\nSi tiene genes de múltiples dominios, los tratamientos estándar no van a funcionar.",
+      alert:{ type:"danger", msg:"⚠ BROTE ACTIVO: 127 CASOS — 19 PAÍSES — CADENAS ALIMENTARIAS COMPROMETIDAS" } },
+  ], next:"SCENE7" },
+
+
+  SCENE7:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"SALA DE CRISIS — REUNION DE EMERGENCIA GLOBAL\n\nHologramas. Mapa del mundo. Puntos rojos multiplicándose.\nQuince rostros en pantalla. Ministerios de salud. Militares. Dos premios Nobel." },
+    { speaker:"DIRECTOR — Comite Global de Biodefensa", speakerClass:"char-director",
+      text:"Necesitamos clasificación taxonómica antes de cualquier intervención.\nSin saber con que dominio tratamos, cualquier tratamiento podría acelerar la adaptación.",
+      alert:{ type:"danger", msg:"⚠ COMITÉ GLOBAL — SESIÓN DE EMERGENCIA — NIVEL MÁXIMO" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(Te mira desde el otro lado de la sala.)\n\nTenés los datos de distancia genómica. El arbol filogenetico. Ubica CG-001." },
+    { speaker:"TU", speakerClass:"char-player",
+      text:"(mirando la matriz)\n\nDame un momento.",
+      choices:[
+        { label:"(Analizar la fila completa de CG-001 antes de responder.)", next:"SCENE7B", safe:true },
+        { label:"(Señalar Archaea — la distancia 0.74 parece razonable.)", next:"SCENE7B", safe:false,
+          penalty:{
+            reason:"Tomaste una decisión sin analizar la fila completa de CG-001.",
+            lesson:"En análisis filogenético, siempre compará TODOS los valores antes de concluir. 0.74 parece cercano hasta que ves que Bacteria es 0.18. El contexto comparativo lo es todo: nunca uses un dato aislado para clasificar.",
+            narrativeConsequence:"El Director interrumpe la sesión: 'Esa clasificacion es incorrecta. Acabamos de perder quince minutos frente a todo el comité.' Vargas no dice nada. No hace falta."
+          } },
+        { label:"(Confirmar las unidades de la matriz antes de interpretar.)", next:"SCENE7B", safe:true },
+      ] },
+  ], next:"SCENE7B" },
+
+  SCENE7B:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Matriz de distancias genómicas cargada. Rango 0.00-1.00.\n0 = idéntico. 1 = sin relación evolutiva detectable.",
+      alert:{ type:"info", msg:"◆ MATRIZ DE DISTANCIAS — ÁRBOL FILOGENÉTICO INTERACTIVO — LISTO" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"La fila de CG-001 tiene cinco valores. El menor indica el clado más cercano.\n\nUsa el arbol interactivo: seleccioná el nodo correcto y confirmá la clasificación. El comité espera." },
+  ], next:"MG3" },
+
+  MG3:{ type:"minigame", game:"phylo", next:"SCENE8" },
+
+  SCENE8:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Clasificacion: Dominio Bacteria. Distancia minima 0.18 con Bacteria_Ref.\nAnomalia: fragmentos génicos arqueales funcionales detectados — HGT multidominio.",
+      alert:{ type:"danger", msg:"⚠ HGT CONFIRMADA — GENES ARCHAEA FUNCIONALES EN GENOMA BACTERIANO — PROTOCOLO ESPECIAL" } },
+    { speaker:"DIRECTOR — Comite Global de Biodefensa", speakerClass:"char-director",
+      text:"¿Transferencia horizontal de genes entre dominios? ¿En esta escala?" },
+    { speaker:"TU", speakerClass:"char-player",
+      text:"Ocurre naturalmente en entornos extremos. Lo inusual es que los genes transferidos sean funcionales y confieran capacidades de múltiples dominios simultáneamente.",
+      choices:[
+        { label:"Los antibióticos bacterianos solo atacarán la mitad de su maquinaria.", next:"SCENE8B", safe:true },
+        { label:"Usar antivirales de amplio espectro — son más seguros en estos casos.", next:"SCENE8B", safe:false,
+          penalty:{
+            reason:"CG-001 es bacteriano. Los antivirales no tienen efecto sobre bacterias ni archaea.",
+            lesson:"La clasificación taxonómica determina el arsenal terapéutico. Los antibióticos atacan síntesis proteica o pared bacteriana. Los antivirales bloquean replicación viral. Un organismo bacteriano con genes arqueales requiere estrategia mixta, nunca antiviral como primera línea.",
+            narrativeConsequence:"Reyes baja la cabeza. 'Le acabamos de recomendar al comité un tratamiento que no va a funcionar. Van a demorar dos horas en corregir ese protocolo.' Dos horas. El sistema sigue creciendo."
+          } },
+        { label:"Necesitamos identificar que genes son arqueales para disenar el blanco.", next:"SCENE8B", safe:true },
+      ] },
+  ], next:"SCENE8B" },
+
+  SCENE8B:{ type:"sequence", steps:[
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Por eso clasificamos las cuatro mutaciones clave ahora.\nDos son reversibles con CRISPR. Las otras dos...\n\n(pausa)\n\n...necesito que lo confirmes vos.",
+      alert:{ type:"warn", msg:"◆ 4 GENES CRÍTICOS — CLASIFICACIÓN REQUERIDA ANTES DE CUALQUIER INTERVENCIÓN" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Tenés 120 segundos antes de que el Director exija respuesta al comité.\n\nCada mutación puede ser: SNP missense, SNP nonsense, inserción in-frame, o frameshift. La clasificación determina si es reversible con CRISPR o no. Clasificá rápido, pero clasificá bien." },
+  ], next:"MG4" },
+
+  MG4:{ type:"minigame", game:"mutations", next:"SCENE9" },
+
+  SCENE9:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Analisis completado:\n\n  GEN A: SNP missense — REVERSIBLE con CRISPR base editing\n  GEN B: Sin mutacion — NO intervenir\n  GEN C: Insercion in-frame — PARCIALMENTE reversible\n  GEN D: Frameshift -1 — IRREVERSIBLE con tecnologia actual",
+      alert:{ type:"danger", msg:"⚠ GEN D FRAMESHIFT PERMANENTE — 68 HORAS PARA PUNTO DE NO RETORNO ECOLÓGICO" } },
+    { speaker:"DIRECTOR — Comite Global de Biodefensa", speakerClass:"char-director",
+      text:"68 horas. Si no intervenimos antes de ese umbral, los cambios en las cadenas alimentarias serán permanentes.\n\nNecesito una recomendación ahora." },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Tenemos tres opciones técnicas. Cada una tiene consecuencias que van más allá de la biología." },
+  ], next:"SCENE10" },
+
+  SCENE10:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"La sala queda en silencio.\n\nTodos miran la pantalla donde están tus análisis.\nEl mapa del mundo sigue actualizándose. Los puntos rojos siguen apareciendo.\n\nEl peso de lo que está por decidirse es físico, palpable." },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(en voz baja, solo para ti)\n\nCualquier decisión que tomes tendrá consecuencias que no podemos predecir completamente.\nLos datos que analizaste son reales. El frameshift del Gen D es real.\n\nPero también es real que esto nunca había ocurrido antes." },
+    { speaker:"TU", speakerClass:"char-player",
+      text:"(mirando el genoma completo de CG-001)\n\nHay algo que todavía no hemos analizado.\n\nEste organismo no tiene secuencias de patogenicidad clásicas.\nNo tiene genes de toxinas. No tiene sistemas de evasión inmune activos.\n\n¿Qué quiere, exactamente?" },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(silencio largo)\n\nEsa es la pregunta correcta.\n\nY es exactamente la que define qué hacemos ahora." },
+  ], next:"DECISION" },
+
+  DECISION:{ type:"decision",
+    text:"Has analizado todo el sistema. Gen D tiene un frameshift irreversible. Los genes A y C son intervenibles. CG-001 no tiene patrones de patogenicidad clásica.\n\n68 horas para el punto de no retorno.\n\nElige.",
+    options:[
+      { label:"NEUTRALIZAR — Secuencia antisentido CRISPR que silencia los genes A, C y D. Detencion permanente.", next:"END_A",
+        sublabel:"Certeza máxima. Costo: pérdida permanente de datos genéticos únicos." },
+      { label:"CONTENER — Barreras biologicas de ARNi que limitan CG-001 a zonas controladas para estudio.", next:"END_B",
+        sublabel:"Equilibrio inestable. Riesgo: mutación adicional que rompa la contención." },
+      { label:"COMUNICAR — Transmitir el codigo genetico universal como senal de reconocimiento.", next:"END_C",
+        sublabel:"Riesgo máximo. Potencial transformador. Irreversible en cualquier dirección." },
+    ]
+  },
+
+  END_A:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"LABORATORIO DE SÍNTESIS — 6 HORAS DESPUÉS\n\nLa secuencia antisentido está lista. Un vector de entrega diseñado para saturar los sitios de unión de los genes A, C y D simultaneamente.",
+      alert:{ type:"warn", msg:"◆ SECUENCIA ANTISENTIDO LISTA — PROTOCOLO DE ENTREGA EN 30 MINUTOS" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Una vez que esto se libere, no hay vuelta atrás.\nCG-001 queda silenciado permanentemente en todos los entornos afectados." },
+    { speaker:"TU", speakerClass:"char-player",
+      text:"Lo se.\n\n(pausa)\n\nHazlo." },
+    { speaker:null, speakerClass:"char-narrator",
+      text:"24 HORAS DESPUÉS\n\nLas curvas epidemiológicas se aplanan. Los casos nuevos caen a cero en 18 horas.\nLos sistemas inmunes de los pacientes existentes comienzan a recuperarse.\n\nCG-001 desaparece de todas las muestras monitoreadas.",
+      alert:{ type:"success", msg:"✓ NEUTRALIZACIÓN EXITOSA — CASOS NUEVOS: 0 — RECUPERACIÓN EN PROGRESO" } },
+    { speaker:"DIRECTOR — Comite Global de Biodefensa", speakerClass:"char-director",
+      text:"Crisis contenida. El mundo puede respirar.\n\n(pausa)\n\nBuen trabajo." },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(en privado, mas tarde)\n\nHiciste lo correcto.\n\n(pausa larga)\n\nLo hiciste?" },
+  ], next:"ENDING_A" },
+
+  ENDING_A:{ type:"ending",
+    title:"FINAL A — NEUTRALIZACIÓN",
+    subtitle:"EL COSTO DE LA CERTEZA",
+    quote:"Elegiste la seguridad.\n\nNo hubo mas muertes. No hubo transicion ecologica.\nEl mundo siguio como antes.\n\nPero en el momento en que la secuencia antisentido saturó los últimos sitios de unión,\nalgo que nunca habíamos visto antes dejó de existir para siempre.\n\nY con ello, respuestas que nunca tendremos.",
+    ending_text:"Los epidemiologos publicaron el caso en Nature tres meses despues.\nEl artículo describe CG-001 como la amenaza biológica más sofisticada jamás documentada.\n\nEn la sección de discusión, un párrafo:\n\n'La secuencia del Gen D — el unico irreversible — contenía un patrón repetido de codones que ningún análisis automatizado pudo clasificar. Su función permanece desconocida.'\n\nEn algun servidor de datos genomicos archivados,\nla última copia del genoma de CG-001 espera.\nSilenciosa.",
+  },
+
+  END_B:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"ZONA DE CONTENCIÓN — 12 HORAS DESPUÉS\n\nLas barreras de ARN de interferencia están desplegadas. Cuatro zonas aisladas en tres continentes.\nLos modelos predictivos dicen que la propagación está frenada.",
+      alert:{ type:"info", msg:"◆ BARRERAS BIOLÓGICAS ACTIVAS — ZONAS ALPHA, BETA, GAMMA, DELTA" } },
+    { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
+      text:"Funciona. Por ahora. CG-001 sigue activo dentro de los perímetros pero no se propaga fuera." },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Ahora tenemos tiempo para estudiarlo. Para entender el Gen D. Para saber qué hace realmente.",
+      choices:[
+        { label:"¿Cuánto tiempo tenemos antes de que mute y rompa la contención?", next:"END_B2", safe:true },
+        { label:"Deberíamos publicar los datos abiertamente para que todo el mundo investigue.", next:"END_B2", safe:false,
+          penalty:{
+            reason:"Propusiste publicar datos de un agente en contención activa sin protocolo de seguridad.",
+            lesson:"Los datos de agentes biológicos en contención activa siguen protocolos estrictos de bioseguridad. Publicar información de secuenciación de un agente no neutralizado podría facilitar su recreación accidental. La ciencia abierta tiene límites cuando hay riesgo biológico activo.",
+            narrativeConsequence:"El asesor legal del comité interviene en el canal de comunicaciones. 'Esa propuesta viola tres tratados internacionales de bioseguridad. La investigación queda pausada hasta una revisión formal.' Tres días de pausa. El sistema sigue evolucionando."
+          } },
+        { label:"Necesitamos descifrar el Gen D antes de cualquier otra decisión.", next:"END_B2", safe:true },
+      ] },
+  ], next:"END_B2" },
+
+  END_B2:{ type:"sequence", steps:[
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Proyeccion: con las barreras actuales, probabilidad de contención estable:\n\n  6 meses: 73%\n  18 meses: 41%\n  3 anos: 12%",
+      alert:{ type:"warn", msg:"◆ PROYECCIÓN — CONTENCION ESTABLE DECRECIENTE — INVESTIGACIÓN ACTIVA REQUERIDA" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"El tiempo juega en nuestra contra. Pero también es el único recurso que tenemos para entender qué es esto realmente antes de decidir si destruirlo.\n\n(mira el mapa)\n\nPor ahora... funciona." },
+    { speaker:null, speakerClass:"char-narrator",
+      text:"CUATRO MESES DESPUÉS\n\nLas zonas de contención siguen activas. El Gen D ha sido parcialmente descifrado.\n\nLos investigadores encontraron algo que nadie esperaba." },
+  ], next:"ENDING_B" },
+
+  ENDING_B:{ type:"ending",
+    title:"FINAL B — CONTENCIÓN",
+    subtitle:"EL EQUILIBRIO FRÁGIL",
+    quote:"Decidiste que no todo lo que existe necesita ser destruido.\nQue la contencion, a veces, es la forma mas honesta de decir:\naun no entendemos esto lo suficiente.\n\nLas barreras se sostienen.\nLos investigadores trabajan.\nEl Gen D empieza a revelar su logica.\n\nY lo que encuentran cambia todo lo que creian saber\nsobre como la vida se organiza a si misma.",
+    ending_text:"El informe del cuarto mes incluye un hallazgo sin precedente:\n\nEl patrón repetido del Gen D no codifica ninguna proteína conocida.\nCodifica una señal. Una frecuencia biológica que CG-001 emite de forma continua.\n\nHacia ningun receptor conocido.\n\nO hacia uno que todavía no hemos encontrado.\n\nLas zonas de contencion siguen activas.\nLa investigacion, tambien.",
+  },
+
+  END_C:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"SALA DE SÍNTESIS GENÓMICA — 3 HORAS DESPUÉS\n\nVos y la Dra. Vargas frente a una pantalla en blanco.\n\nTodo el mundo les dijo que no.",
+      alert:{ type:"warn", msg:"◆ PROTOCOLO NO AUTORIZADO — TRANSMISIÓN GENÓMICA EXPERIMENTAL — RIESGO NIVEL MÁXIMO" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"Si esto funciona, cambia todo.\n\n(pausa)\n\nSi no funciona, también." },
+    { speaker:"TU", speakerClass:"char-player",
+      text:"Usando los codones universales — los que comparten todos los dominios de la vida — construimos una secuencia que no dice 'somos humanos'.\n\nDice: 'somos vida. Y te reconocemos.'" },
+  ], next:"END_C2" },
+
+  END_C2:{ type:"sequence", steps:[
+    { speaker:null, speakerClass:"char-narrator",
+      text:"La secuencia se transmite.\n\nPor primera vez en la historia, enviamos un mensaje en el único lenguaje verdaderamente universal.\n\nY esperamos." },
+    { speaker:"SISTEMA IA", speakerClass:"char-sistema",
+      text:"Anomalia detectada en las muestras de contencion.\n\nCG-001 dejó de replicarse.\n\nNo está muerto. Está... esperando.",
+      alert:{ type:"info", msg:"◆ CG-001 — ESTADO: LATENTE — PATRON GENETICO: MODIFICADO — TRANSMISION: ACTIVA" } },
+    { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
+      text:"(en voz muy baja)\n\nNos respondio." },
+  ], next:"ENDING_C" },
+
+  ENDING_C:{ type:"ending",
+    title:"FINAL C — COMUNICACIÓN",
+    subtitle:"LA RESPUESTA",
+    quote:"La humanidad siempre pensó que dominaba la biología.\nNunca entendimos que solo la estábamos empezando a leer.\n\nPor primera vez en la historia, enviamos un mensaje en el único idioma universal.\n\nY algo respondió.",
+    ending_text:"El planeta visto desde el espacio.\nDatos genéticos rodeando la Tierra como una red luminosa.\n\nCG-001 no era un enemigo.\nEra una pregunta que el universo llevaba millones de anos intentando formular.\n\nLa respuesta que construimos juntos todavía se está desplegando.\n\nEn cada célula. En cada ecosistema. En cada generación que viene.",
+  },
+
+  SCENE_LABELS_EXTRA: null,
+};
+
+const SCENE_LABELS = {
+  INTRO:"Apertura — 2035",
+  SCENE2:"Llegada al centro",
+  SCENE3:"Primer caso activo",
+  MG1:"Lab · Alineamiento BLAST",
+  SCENE4:"Resultado del analisis",
+  SCENE5:"Analisis de mRNA",
+  MG2:"Lab · Traduccion de codones",
+  SCENE6:"Peptido activo",
+  SCENE7:"Reunion de crisis global",
+  SCENE7B:"Clasificacion filogenética",
+  MG3:"Lab · Arbol filogenetico",
+  SCENE8:"HGT confirmada",
+  SCENE8B:"Clasificacion de mutaciones",
+  MG4:"Lab · Clasificacion de mutaciones",
+  SCENE9:"Analisis final",
+  SCENE10:"Climax",
+  DECISION:"Decision Final",
+  END_A:"Final A", END_B:"Final B", END_C:"Final C", END_C2:"Final C",
+  ENDING_A:"Creditos", ENDING_B:"Creditos", ENDING_C:"Creditos",
+};
+
+/* ═══════════════════════════════════════════
+   OUTBREAK: CÓDIGO GENÉTICO — Game Logic v3
+   ═══════════════════════════════════════════ */
+
+
+const MAX_LIVES = 3;
+
+function useMounted() {
+  const ref = useRef(true);
+  useEffect(() => () => { ref.current = false; }, []);
+  return ref;
+}
+
+
+// ── AlertBar ─────────────────────────────────
+function AlertBar({ type, msg }) {
+  useEffect(() => {
+    try {
+      type === "danger"
+        ? window.AudioEngine && window.AudioEngine.play("alertDanger")
+        : window.AudioEngine && window.AudioEngine.play("alertInfo");
+    } catch(e) {}
+  }, [msg]);
+  return <div className={"alert-bar alert-" + type}>{msg}</div>;
+}
+
+// ── Rich text parser ──────────────────────────
+function parseNarrative(raw) {
+  const PAUSES = ["(pausa)", "(pausa larga)", "(silencio largo)"];
+  const SCENE_KW = /DESPUES|INTERIOR|SALA|NEGRO|LABORATORIO|ZONA|MONTAJE|HORAS|MESES/;
+  const segs = [], lines = raw.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i], t = line.trim();
+    if (!t)                                              { segs.push({type:"br"});           i++; continue; }
+    if (PAUSES.includes(t))                              { segs.push({type:"pause"});        i++; continue; }
+    if (/^\([^)]+\)$/.test(t))                           { segs.push({type:"stage",t});      i++; continue; }
+    if (/^[A-Z0-9 \-\.]+$/.test(t) && t.length>6 && SCENE_KW.test(t)) { segs.push({type:"hdr",t}); i++; continue; }
+    if (line.startsWith("  ") && /^[A-Z]/.test(t)) {
+      const rows = [];
+      while (i < lines.length && lines[i].startsWith("  ") && /^[A-Z]/.test(lines[i].trim())) {
+        const r = lines[i].trim(), m = r.match(/^([^:]+):\s*(.+)$/);
+        rows.push(m ? {label:m[1].trim(), value:m[2].trim()} : {label:r, value:null});
+        i++;
+      }
+      if (rows.length) { segs.push({type:"data",rows}); continue; }
+    }
+    segs.push({type:"text",t:line}); i++;
+  }
+  return segs;
+}
+function PauseDots() {
+  return (
+    <span className="pause-dots">
+      <span className="pd-dot" style={{animationDelay:"0s"}}>·</span>
+      <span className="pd-dot" style={{animationDelay:"0.35s"}}>·</span>
+      <span className="pd-dot" style={{animationDelay:"0.7s"}}>·</span>
+    </span>
+  );
+}
+function RichText({ text }) {
+  const segs = parseNarrative(text);
+  return (
+    <span className="rich-narrative">
+      {segs.map((s,i) => {
+        if (s.type==="br")    return <br key={i} />;
+        if (s.type==="pause") return <span key={i} className="rich-pause"><PauseDots /></span>;
+        if (s.type==="stage") return <em key={i} className="rich-stage">{s.t}</em>;
+        if (s.type==="hdr")   return <span key={i} className="rich-scene-header">{s.t}</span>;
+        if (s.type==="data")  return (
+          <div key={i} className="data-panel">
+            <div className="data-panel-header">&#9670; DATOS DEL SISTEMA</div>
+            {s.rows.map((r,j) => {
+              const v = r.value||"";
+              const cls = "data-panel-value"+(/0%/.test(v)?" zero":/ALERTA|CRITICO/.test(v)?" danger":/AUMENTO/.test(v)?" warn":"");
+              return (
+                <div key={j} className="data-panel-row" style={{animationDelay:(j*0.1)+"s"}}>
+                  <span className="data-panel-label">{r.label}</span>
+                  {r.value && <span className={cls}>{r.value}</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+        return <span key={i}>{s.t}</span>;
+      })}
+    </span>
+  );
+}
+
+// ── Splash screen ─────────────────────────────
+function SplashScreen({ onBegin }) {
+  const [ready, setReady]       = useState(false);
+  const [counting, setCounting] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const begin = () => {
+    setCounting(true);
+    const delays = [0, 700, 1400, 2100, 2800, 3500, 4200];
+    const pips = delays.map(d => setTimeout(() => {
+      try { window.AudioEngine && window.AudioEngine.play("heartbeat"); } catch(e) {}
+    }, d));
+    setTimeout(() => {
+      pips.forEach(clearTimeout);
+      try { window.AudioEngine && window.AudioEngine.startAmbient(); } catch(e) {}
+      onBegin();
+    }, 5000);
+  };
+
+  if (counting) return (
+    <div style={{position:"fixed",inset:0,background:"#000",display:"flex",
+      alignItems:"center",justifyContent:"center",zIndex:300}}>
+      <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:22,
+        color:"#1a3a22",letterSpacing:4}}>INICIANDO SISTEMA...</div>
+    </div>
+  );
+
+  return (
+    <div className="splash-root">
+      <div className="splash-center">
+        <svg className="ecg-svg" viewBox="0 0 300 50">
+          <polyline className="ecg-line" fill="none" stroke="#ff2d55" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round"
+            points="0,25 40,25 50,5 60,45 70,5 80,45 90,25 140,25 150,10 160,40 170,10 180,40 190,25 300,25" />
+        </svg>
+        <div className="splash-title">OUTBREAK</div>
+        <div className="splash-sub">CÓDIGO GENÉTICO</div>
+        <div className="splash-tag">
+          Año 2035. Algo en el genoma no debería existir.<br/>
+          Y sin embargo, existe. Y está cambiando.
+        </div>
+        {ready && <button className="splash-btn" onClick={begin}>COMENZAR MISIÓN</button>}
+      </div>
+      <div className="splash-footer">SISTEMA DE BIOANÁLISIS GLOBAL · 2035</div>
+    </div>
+  );
+}
+
+// ── DNA RAIN ──────────────────────────────────
+function DnaCanvas() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const c = canvasRef.current;
+    const ctx = c.getContext("2d");
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    const bases = ["A","T","G","C"];
+    const colors = { A:"#00ff6a", T:"#ff2d55", G:"#60a5fa", C:"#ffb700" };
+    const cols = Math.floor(c.width / 18);
+    const drops = Array(cols).fill(1);
+    let frame;
+    const draw = () => {
+      ctx.fillStyle = "rgba(2,13,8,0.05)";
+      ctx.fillRect(0,0,c.width,c.height);
+      ctx.font = "12px 'Share Tech Mono', monospace";
+      drops.forEach((y,i) => {
+        const b = bases[Math.floor(Math.random()*bases.length)];
+        ctx.fillStyle = colors[b];
+        ctx.fillText(b, i*18, y*18);
+        if (y*18 > c.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      });
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return <canvas ref={canvasRef} className="dna-canvas" />;
+}
+
+// ── TYPEWRITER ────────────────────────────────
+function useTypewriter(text, speed, onDone) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const skipRef = useRef(false);
+  useEffect(() => {
+    setDisplayed(""); setDone(false); skipRef.current = false;
+    let i = 0;
+    const iv = setInterval(() => {
+      if (skipRef.current) {
+        setDisplayed(text); setDone(true);
+        clearInterval(iv); onDone && onDone(); return;
+      }
+      i++; setDisplayed(text.slice(0,i));
+      if (i >= text.length) { setDone(true); clearInterval(iv); onDone && onDone(); }
+    }, speed || 20);
+    return () => clearInterval(iv);
+  }, [text]);
+  return { displayed, done, skip: () => { skipRef.current = true; } };
+}
+
+function NarrativeBox({ speaker, speakerClass, text, speed, onDone, children }) {
+  const prevLen = useRef(0);
+  const { displayed, done, skip } = useTypewriter(text, speed || 20, onDone);
+  useEffect(() => {
+    if (displayed.length > prevLen.current && displayed.length % 4 === 0)
+      try { window.AudioEngine && window.AudioEngine.play("keyClick"); } catch(e) {}
+    prevLen.current = displayed.length;
+  }, [displayed]);
+  const portrait = PORTRAIT_DATA[speakerClass];
+  return (
+    <div className={"narrative-box" + (portrait ? " has-portrait" : "")}
+      onClick={!done ? skip : undefined}
+      style={{cursor: done ? "default" : "pointer"}}>
+      {portrait && <div className="portrait-wrap" dangerouslySetInnerHTML={{__html: portrait}} />}
+      <div className="narrative-content">
+        {speaker && <div className={`char-label ${speakerClass}`}>{speaker}</div>}
+        <p className="narrative-text">
+          {done ? <RichText text={text} /> : <>{displayed}<span className="cursor-blink" /></>}
+        </p>
+        {done && children}
+      </div>
+    </div>
+  );
+}
+
+// ── LIVES HUD ─────────────────────────────────
+function LivesDisplay({ lives }) {
+  return (
+    <div className="hud-lives">
+      <span className="hud-lives-label">VIDAS</span>
+      {Array.from({length: MAX_LIVES}).map((_,i) => (
+        <div key={i} className={`life-dna ${i < lives ? "active" : "lost"}`}>
+          <div className="strand" /><div className="strand" /><div className="strand" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── PENALTY BOX ───────────────────────────────
+function PenaltyBox({ penalty, onClose }) {
+  useEffect(() => { try { window.AudioEngine && window.AudioEngine.play("lifeLost"); } catch(e) {} }, []);
+  return (
+    <div>
+      <div className="life-lost-overlay" />
+      <div className="penalty-box">
+        <div className="penalty-title">⚠ ANÁLISIS INCORRECTO — VIDA PERDIDA</div>
+        <div className="penalty-text">
+          <strong>Error:</strong> {penalty.reason}<br/><br/>
+          <strong>Concepto clave:</strong> {penalty.lesson}
+        </div>
+      </div>
+      <div className="continue-wrap">
+        <button className="continue-btn" onClick={onClose}>Continuar →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── GAME OVER ─────────────────────────────────
+function GameOverScreen({ reason, lesson, onRetry, onRestart }) {
+  useEffect(() => { try { window.AudioEngine && window.AudioEngine.play("gameOver"); } catch(e) {} }, []);
+  return (
+    <div className="game-over-screen">
+      <div className="go-glitch">GAME OVER</div>
+      <div className="go-subtitle">MISIÓN FALLIDA — EL BROTE NO FUE CONTENIDO</div>
+      {reason && (
+        <div className="go-reason-box">
+          <div className="go-reason-label">◆ ¿Qué salió mal?</div>
+          <div className="go-reason-text">{reason}</div>
+        </div>
+      )}
+      {lesson && (
+        <div className="go-lesson-box">
+          <div className="go-lesson-label">◆ Concepto para recordar</div>
+          <div className="go-lesson-text">{lesson}</div>
+        </div>
+      )}
+      <div className="go-buttons">
+        <button className="go-btn go-btn-retry" onClick={onRetry}>↺ Reintentar minijuego</button>
+        <button className="go-btn go-btn-restart" onClick={onRestart}>⟳ Reiniciar historia</button>
+      </div>
+    </div>
+  );
+}
+
+// ── HINT BUTTON ───────────────────────────────
+function HintBtn({ hint, onUse, disabled }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div style={{marginBottom:10}}>
+      <button className="hint-btn" disabled={disabled || shown}
+        onClick={() => { setShown(true); onUse && onUse(); }}>
+        {shown ? "✓ PISTA USADA" : "💡 PISTA (−5 pts)"}
+      </button>
+      {shown && <div className="hint-box">{hint}</div>}
+    </div>
+  );
+}
+
+// ── COUNTDOWN TIMER ───────────────────────────
+function CountdownTimer({ seconds, onExpire, paused }) {
+  const [remaining, setRemaining] = useState(seconds);
+  const mounted = useMounted();
+  const expiredRef = useRef(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const iv = setInterval(() => {
+      if (!mounted.current) { clearInterval(iv); return; }
+      setRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(iv);
+          if (!expiredRef.current) {
+            expiredRef.current = true;
+            setTimeout(() => { if (mounted.current) onExpire(); }, 0);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [paused]);
+
+  const pct = (remaining / seconds) * 100;
+  const color = remaining > 30 ? "var(--glow2)" : remaining > 10 ? "var(--amber)" : "var(--red)";
+  return (
+    <div className="timer-wrap">
+      <div className="timer-label" style={{color}}>⏱ {remaining}s</div>
+      <div className="timer-bar-bg">
+        <div className="timer-bar-fill" style={{width:`${pct}%`, background:color}} />
+      </div>
+    </div>
+  );
+}
+
+// ── SEQUENCE DIFF RENDERER ────────────────────
+function SeqDiff({ refSeq, mutSeq }) {
+  const ref = refSeq.replace(/[\s]/g,"");
+  const mut = mutSeq.replace(/[\s-]/g,"");
+  const maxLen = Math.max(ref.length, mut.length);
+  const refSpans = [], mutSpans = [];
+  for (let i = 0; i < maxLen; i++) {
+    const r = ref[i], m = mut[i];
+    if (r === undefined) {
+      refSpans.push(<span key={i} className="diff-gap">·</span>);
+      mutSpans.push(<span key={i} className="base-inserted">{m}</span>);
+    } else if (m === undefined) {
+      refSpans.push(<span key={i} className="diff-deleted">{r}</span>);
+      mutSpans.push(<span key={i} className="diff-gap">∅</span>);
+    } else if (r !== m) {
+      refSpans.push(<span key={i} className="diff-ref-changed">{r}</span>);
+      mutSpans.push(<span key={i} className="diff-mut-changed">{m}</span>);
+    } else {
+      refSpans.push(<span key={i} className={`base-${r}`}>{r}</span>);
+      mutSpans.push(<span key={i} className={`base-${m}`}>{m}</span>);
+    }
+  }
+  return (
+    <div className="seq-diff-block">
+      <div className="seq-diff-row">
+        <span className="seq-diff-tag">REF:</span>
+        <span className="seq-diff-bases">{refSpans}</span>
+      </div>
+      <div className="seq-diff-row">
+        <span className="seq-diff-tag">MUT:</span>
+        <span className="seq-diff-bases">{mutSpans}</span>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// MG1 — BLAST ALIGNMENT
+// ══════════════════════════════════════════════
+function BlastMinigame({ onComplete, onLoseLive, onScoreBonus }) {
+  const d = MG1_DATA;
+  const mounted = useMounted();
+  const [selectedHit, setSelectedHit] = useState(null);
+  const [hitSubmitted, setHitSubmitted] = useState(false);
+  const [mutAnswer, setMutAnswer] = useState(null);
+  const [mutSubmitted, setMutSubmitted] = useState(false);
+  const [phase, setPhase] = useState("hit");
+
+  const submitHit = () => {
+    if (!selectedHit) return;
+    setHitSubmitted(true);
+    const hit = d.hits.find(h => h.id === selectedHit);
+    if (hit.correct) {
+      onScoreBonus(30, "+30 pts — hit correcto");
+    } else {
+      onLoseLive({
+        reason: hit.explanation,
+        lesson: "En BLAST: E-value bajo = hit significativo. 2e-18 significa probabilidad casi nula de ser por azar. 5e-4 ocurre frecuentemente al azar. También: mayor % identidad y score más alto indican mejor alineamiento."
+      });
+    }
+    setTimeout(() => { if (mounted.current) setPhase("mut"); }, 800);
+  };
+
+  const submitMut = () => {
+    if (mutAnswer === null) return;
+    setMutSubmitted(true);
+    if (mutAnswer !== d.mutTypeQ.correct) {
+      onLoseLive({
+        reason: `Seleccionaste: "${d.mutTypeQ.options[mutAnswer]}". Correcto: "${d.mutTypeQ.options[d.mutTypeQ.correct]}"`,
+        lesson: d.mutTypeQ.explanation
+      });
+    } else {
+      onScoreBonus(20, "+20 pts — mutación clasificada");
+    }
+    setTimeout(() => { if (mounted.current) onComplete(); }, 1200);
+  };
+
+  return (
+    <div className="minigame-wrapper">
+      <div className="mg-header">
+        <div className="mg-title">{d.title}</div>
+      <div className="mg-objective">
+        <div className="mg-objective-label">▶ TU OBJETIVO</div>
+        <div className="mg-objective-text" dangerouslySetInnerHTML={{__html: "Identificá la secuencia con <strong>mayor homología</strong> a CG-001."}} />
+        <div className="mg-objective-hint">Buscá el hit con el E-value más bajo — ese es el alineamiento estadísticamente más significativo.</div>
+      </div>
+        <div className="mg-subtitle">{d.subtitle}</div>
+        <div className="mg-lives-warning">{d.lives_warning}</div>
+      </div>
+      <div className="blast-legend">
+        <span><span style={{color:"var(--amber)"}}>E-value</span>: prob. de hit por azar — más bajo = mejor</span>
+        <span><span style={{color:"var(--glow3)"}}>Identidad</span>: % bases iguales</span>
+        <span><span style={{color:"var(--purple)"}}>Score</span>: puntuación total del alineamiento</span>
+      </div>
+      <div className="blast-query">
+        <div className="blast-query-label">{d.query.label}</div>
+        <div className="blast-seq">
+          {d.query.seq.split("").map((b,i) => <span key={i} className={`base-${b}`}>{b}</span>)}
+        </div>
+      </div>
+
+      {(phase === "hit" || hitSubmitted) && (
+        <>
+          <div className="mg-section-label">◆ Resultados BLAST — Selecciona el hit más significativo:</div>
+          <HintBtn
+            hint="Ordena por E-value de menor a mayor. El hit con E-value más bajo y mayor % identidad es el mejor candidato filogenéticamente."
+            onUse={() => onScoreBonus(-5, "Pista usada −5 pts")}
+            disabled={hitSubmitted}
+          />
+          <div className="blast-hits">
+            {d.hits.map(hit => {
+              const isSel = selectedHit === hit.id;
+              const isOk  = hitSubmitted && hit.correct;
+              const isBad = hitSubmitted && isSel && !hit.correct;
+              return (
+                <div key={hit.id}
+                  className={`blast-hit ${isSel?"selected":""} ${isOk?"correct":""} ${isBad?"wrong":""}`}
+                  onClick={() => !hitSubmitted && setSelectedHit(hit.id)}
+                >
+                  <div className="hit-meta">
+                    <span className="hit-org">[{hit.id}] {hit.organism}</span>
+                    <span className="hit-badge evalue">E: {hit.evalue}</span>
+                    <span className="hit-badge identity">ID: {hit.identity}</span>
+                    <span className="hit-badge score">Score: {hit.score}</span>
+                  </div>
+                  <SeqDiff refSeq={hit.ref} mutSeq={hit.query} />
+                  <div className="align-identity-bar">
+                    {hit.ref.split("").map((rCh,i) => {
+                      const qCh = (hit.query.replace(/[\s]/g,""))[i] || "-";
+                      return <span key={i} style={{
+                        display:"inline-block", width:6, height:4,
+                        background: rCh===qCh ? "var(--glow2)" : "var(--red)"
+                      }} />;
+                    })}
+                    <span style={{fontSize:18, color:"var(--muted)", marginLeft:6, fontFamily:"'Share Tech Mono',monospace"}}>
+                      identidad visual
+                    </span>
+                  </div>
+                  {hitSubmitted && (
+                    <div style={{marginTop:8, fontSize:22, lineHeight:1.5,
+                      color: hit.correct ? "var(--glow)" : "var(--red)",
+                      fontFamily:"'Exo 2',sans-serif"}}>
+                      {hit.correct ? "✓ " : "✗ "}{hit.explanation}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {!hitSubmitted && (
+            <button className="action-btn" disabled={!selectedHit} onClick={submitHit}>
+              Confirmar hit →
+            </button>
+          )}
+        </>
+      )}
+
+      {phase === "mut" && (
+        <div style={{marginTop:16, animation:"fade-in 0.4s ease forwards"}}>
+          <div className="mg-section-label">◆ {d.mutTypeQ.question}</div>
+          <HintBtn
+            hint="Un SNP cambia exactamente 1 base. Una inserción agrega bases (secuencia más larga). Una deleción quita bases (secuencia más corta). Frameshift: inserción o deleción que no es múltiplo de 3."
+            onUse={() => onScoreBonus(-5, "Pista usada −5 pts")}
+            disabled={mutSubmitted}
+          />
+          <div className="choices-container">
+            {d.mutTypeQ.options.map((opt, i) => (
+              <button key={i}
+                className={`choice-btn ${mutAnswer===i?"selected":""} ${mutSubmitted && i===d.mutTypeQ.correct?"correct":""} ${mutSubmitted && mutAnswer===i && i!==d.mutTypeQ.correct?"wrong":""}`}
+                onClick={() => !mutSubmitted && setMutAnswer(i)}
+                disabled={mutSubmitted}
+              >
+                <span className="choice-num">{String(i+1).padStart(2,"0")}</span>{opt}
+              </button>
+            ))}
+          </div>
+          {mutSubmitted && <div className="alert-info" style={{marginTop:10,fontSize:22}}>{d.mutTypeQ.explanation}</div>}
+          {!mutSubmitted && <button className="action-btn" disabled={mutAnswer===null} onClick={submitMut} style={{marginTop:10}}>Clasificar mutación →</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// MG2 — CODON TRANSLATION
+// ══════════════════════════════════════════════
+const CODON_LOOKUP = {
+  AUG:"Met",UUU:"Phe",UUC:"Phe",UUA:"Leu",UUG:"Leu",
+  CUU:"Leu",CUC:"Leu",CUA:"Leu",CUG:"Leu",AUU:"Ile",AUC:"Ile",AUA:"Ile",
+  GUU:"Val",GUC:"Val",GUA:"Val",GUG:"Val",UCU:"Ser",UCC:"Ser",UCA:"Ser",UCG:"Ser",
+  CCU:"Pro",CCC:"Pro",CCA:"Pro",CCG:"Pro",ACU:"Thr",ACC:"Thr",ACA:"Thr",ACG:"Thr",
+  GCU:"Ala",GCC:"Ala",GCA:"Ala",GCG:"Ala",UAU:"Tyr",UAC:"Tyr",
+  CAU:"His",CAC:"His",CAA:"Gln",CAG:"Gln",AAU:"Asn",AAC:"Asn",AAA:"Lys",AAG:"Lys",
+  GAU:"Asp",GAC:"Asp",GAA:"Glu",GAG:"Glu",UGU:"Cys",UGC:"Cys",UGG:"Trp",
+  CGU:"Arg",CGC:"Arg",CGA:"Arg",CGG:"Arg",AGU:"Ser",AGC:"Ser",AGA:"Arg",AGG:"Arg",
+  GGU:"Gly",GGC:"Gly",GGA:"Gly",GGG:"Gly",UAA:"STOP",UAG:"STOP",UGA:"STOP",
+};
+
+const CODON_TABLE_ROWS = [
+  [["AUG","Met(inicio)"],["CAG","Gln"],  ["GAU","Asp"],  ["UGG","Trp"]],
+  [["UUU","Phe"],         ["CAU","His"],  ["GAA","Glu"],  ["UGU","Cys"]],
+  [["UUC","Phe"],         ["CUU","Leu"],  ["GUU","Val"],  ["UGC","Cys"]],
+  [["UUA","Leu"],         ["CUG","Leu"],  ["GCU","Ala"],  ["CGU","Arg"]],
+  [["UUG","Leu"],         ["CCU","Pro"],  ["ACU","Thr"],  ["GGU","Gly"]],
+  [["UCU","Ser"],         ["AAU","Asn"],  ["AAA","Lys"],  ["AAG","Lys"]],
+  [["AUU","Ile"],         ["AUA","Ile"],  ["GGA","Gly"],  ["AGU","Ser"]],
+  [["UAA","STOP"],        ["UAG","STOP"], ["UGA","STOP"], ["---","---"]],
+];
+
+function CodonMinigame({ onComplete, onLoseLive, onScoreBonus }) {
+  const d = MG2_DATA;
+  const mounted = useMounted();
+  const [q1Answer, setQ1Answer] = useState(null);
+  const [q1Submitted, setQ1Submitted] = useState(false);
+  const [q2Answer, setQ2Answer] = useState(null);
+  const [q2Submitted, setQ2Submitted] = useState(false);
+  const [phase, setPhase] = useState("q1");
+  const [revealedUpto, setRevealedUpto] = useState(0);
+  const codons = d.question1.codons;
+
+  useEffect(() => {
+    if (revealedUpto >= codons.length) return;
+    const t = setTimeout(() => { if (mounted.current) setRevealedUpto(p => p+1); }, 280);
+    return () => clearTimeout(t);
+  }, [revealedUpto, codons.length]);
+
+  const submitQ1 = () => {
+    if (q1Answer === null) return;
+    setQ1Submitted(true);
+    if (q1Answer !== d.question1.correct_idx) {
+      onLoseLive({
+        reason: `Seleccionaste ${codons[q1Answer]} (${CODON_LOOKUP[codons[q1Answer]] || "?"}). El codón STOP prematuro es UAG en posición 3.`,
+        lesson: d.question1.explanation
+      });
+    } else {
+      onScoreBonus(25, "+25 pts — codón STOP identificado");
+    }
+    setTimeout(() => { if (mounted.current) setPhase("q2"); }, 900);
+  };
+
+  const submitQ2 = () => {
+    if (q2Answer === null) return;
+    setQ2Submitted(true);
+    if (q2Answer !== d.question2.correct) {
+      onLoseLive({
+        reason: `Seleccionaste: "${d.question2.options[q2Answer]}". Correcto: "${d.question2.options[d.question2.correct]}"`,
+        lesson: d.question2.explanation
+      });
+    } else {
+      onScoreBonus(20, "+20 pts — tipo de mutación correcto");
+    }
+    setTimeout(() => { if (mounted.current) onComplete(); }, 1200);
+  };
+
+  return (
+    <div className="minigame-wrapper">
+      <div className="mg-header">
+        <div className="mg-title">{d.title}</div>
+      <div className="mg-objective">
+        <div className="mg-objective-label">▶ TU OBJETIVO</div>
+        <div className="mg-objective-text" dangerouslySetInnerHTML={{__html: "Traducí el ARNm e identificá la mutación que genera el <strong>codón de stop prematuro</strong>."}} />
+        <div className="mg-objective-hint">Cada triplete de bases codifica un aminoácido. UAG, UAA y UGA detienen la traducción.</div>
+      </div>
+        <div className="mg-subtitle">{d.subtitle}</div>
+        <div className="mg-lives-warning">{d.lives_warning}</div>
+      </div>
+
+      {/* Compact codon reference table */}
+      <div className="mg-section-label">◆ Tabla de referencia rápida (codones → aminoácidos):</div>
+      <div className="codon-grid-compact">
+        {CODON_TABLE_ROWS.map((row, ri) => (
+          <div key={ri} className="codon-grid-row">
+            {row.map(([cod, aa]) => (
+              <span key={cod} className={`cgc-pair ${aa==="STOP"?"stop-pair":""}`}>
+                <span className="cgc-codon">{cod}</span>
+                <span className="cgc-aa">{aa}</span>
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* mRNA comparison */}
+      <div className="mg-section-label">◆ Comparación mRNA — original vs mutante:</div>
+      <div className="mrna-compare">
+        <div className="mrna-row">
+          <span className="mrna-row-label">ORIGINAL</span>
+          {d.original_mrna.split(" ").map((c,i) => (
+            <span key={i} className="mrna-codon-chip">{c}</span>
+          ))}
+        </div>
+        <div className="mrna-row">
+          <span className="mrna-row-label">MUTANTE</span>
+          {d.mutant_mrna.split(" ").map((c,i) => {
+            const orig = d.original_mrna.split(" ")[i];
+            const changed = c !== orig;
+            return (
+              <span key={i} className={`mrna-codon-chip ${changed?"mutated":""}`}>
+                {c}
+                {changed && <span className="mutation-marker">↑</span>}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Animated protein chain */}
+      <div className="mg-section-label">◆ Traducción progresiva de la secuencia MUTANTE:</div>
+      <div className="protein-chain">
+        {codons.map((codon, i) => {
+          const aa = CODON_LOOKUP[codon];
+          const isStop = aa === "STOP";
+          const visible = i < revealedUpto;
+          return (
+            <div key={i} className={`aa-bead ${isStop?"stop-bead":""} ${!visible?"hidden-bead":""}`}>
+              <div className="aa-codon">{codon}</div>
+              <div className="aa-name">{isStop ? "■ STOP" : (aa || "?")}</div>
+              {!isStop && i < codons.length-1 && !isStop && <div className="aa-link" />}
+            </div>
+          );
+        })}
+      </div>
+      <div className="protein-summary">
+        ↳ Proteína truncada: <span style={{color:"var(--glow)"}}>Met—Gln</span>—<span style={{color:"var(--red)"}}>■STOP</span> → solo 2 aminoácidos funcionales
+      </div>
+
+      {/* Q1 */}
+      <div className="mg-section-label">◆ {d.question1.text}</div>
+      <HintBtn
+        hint="Los 3 codones de stop son: UAA, UAG y UGA. Busca cuál de los codones de la secuencia mutante empieza con UA o UG y es diferente al original."
+        onUse={() => onScoreBonus(-5, "Pista usada −5 pts")}
+        disabled={q1Submitted}
+      />
+      <div className="codon-selector">
+        {codons.map((codon, i) => {
+          const aa = CODON_LOOKUP[codon];
+          const isStop = aa === "STOP";
+          return (
+            <button key={i}
+              className={`codon-select-btn ${isStop?"is-stop":""} ${q1Answer===i?"selected":""} ${q1Submitted && i===d.question1.correct_idx?"correct":""} ${q1Submitted && q1Answer===i && i!==d.question1.correct_idx?"wrong":""}`}
+              onClick={() => !q1Submitted && setQ1Answer(i)}
+              disabled={q1Submitted}
+            >
+              <span className="cs-codon">{codon}</span>
+              <span className="cs-aa">{aa || "?"}</span>
+              <span className="cs-pos">#{i+1}</span>
+            </button>
+          );
+        })}
+      </div>
+      {q1Submitted && (
+        <div className={q1Answer===d.question1.correct_idx?"alert-success":"alert-danger"} style={{fontSize:22,marginBottom:10}}>
+          {d.question1.explanation}
+        </div>
+      )}
+      {!q1Submitted && (
+        <button className="action-btn" disabled={q1Answer===null} onClick={submitQ1}>
+          Identificar codón STOP →
+        </button>
+      )}
+
+      {/* Q2 */}
+      {phase === "q2" && (
+        <div style={{marginTop:18,animation:"fade-in 0.4s ease forwards"}}>
+          <div className="mg-section-label">◆ {d.question2.text}</div>
+          <div className="choices-container">
+            {d.question2.options.map((opt,i) => (
+              <button key={i}
+                className={`choice-btn ${q2Answer===i?"selected":""} ${q2Submitted && i===d.question2.correct?"correct":""} ${q2Submitted && q2Answer===i && i!==d.question2.correct?"wrong":""}`}
+                onClick={() => !q2Submitted && setQ2Answer(i)}
+                disabled={q2Submitted}
+              >
+                <span className="choice-num">{String(i+1).padStart(2,"0")}</span>{opt}
+              </button>
+            ))}
+          </div>
+          {q2Submitted && <div className="alert-info" style={{marginTop:10,fontSize:22}}>{d.question2.explanation}</div>}
+          {!q2Submitted && <button className="action-btn" disabled={q2Answer===null} onClick={submitQ2} style={{marginTop:10}}>Clasificar mutación →</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// MG3 — PHYLOGENETIC TREE
+// ══════════════════════════════════════════════
+function PhyloMinigame({ onComplete, onLoseLive, onScoreBonus }) {
+  const d = MG3_DATA;
+  const mounted = useMounted();
+  const [selected, setSelected] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [q2Answer, setQ2Answer] = useState(null);
+  const [q2Submitted, setQ2Submitted] = useState(false);
+  const [phase, setPhase] = useState("tree");
+
+  const submitTree = () => {
+    if (!selected) return;
+    setSubmitted(true);
+    if (selected !== d.correct_pos) {
+      onLoseLive({
+        reason: d.explanation_wrong,
+        lesson: "En filogenética: menor distancia = mayor cercanía evolutiva. Fila CG001: Bacteria 0.18, Archaea 0.74, Eukarya 0.83, Virus 0.94. El valor mínimo indica el dominio correcto."
+      });
+    } else {
+      onScoreBonus(30, "+30 pts — ubicación filogenética correcta");
+    }
+    setTimeout(() => { if (mounted.current) setPhase("q2"); }, 1000);
+  };
+
+  const submitQ2 = () => {
+    if (q2Answer === null) return;
+    setQ2Submitted(true);
+    if (q2Answer !== d.question2.correct) {
+      onLoseLive({ reason: `Seleccionaste: "${d.question2.options[q2Answer]}"`, lesson: d.question2.explanation });
+    } else {
+      onScoreBonus(20, "+20 pts — interpretación correcta");
+    }
+    setTimeout(() => { if (mounted.current) onComplete(); }, 1200);
+  };
+
+  // SVG cladogram layout
+  const W = 500, H = 300;
+  const xRoot = 40, xInternal = 100, xLeaf = 210, xLabel = 225, xPos = 370;
+  const leaves = [
+    { id:"bact",  label:"Bacteria",   y:55,  distIdx:0 },
+    { id:"arch",  label:"Archaea",    y:115, distIdx:1 },
+    { id:"euk",   label:"Eukarya",    y:175, distIdx:2 },
+    { id:"virus", label:"Virus",      y:235, distIdx:3 },
+  ];
+  const positions = [
+    { id:"pos_A", leafId:"bact",  label:"Posición A" },
+    { id:"pos_B", leafId:"arch",  label:"Posición B" },
+    { id:"pos_C", leafId:"euk",   label:"Posición C" },
+  ];
+
+  return (
+    <div className="minigame-wrapper">
+      <div className="mg-header">
+        <div className="mg-title">{d.title}</div>
+      <div className="mg-objective">
+        <div className="mg-objective-label">▶ TU OBJETIVO</div>
+        <div className="mg-objective-text" dangerouslySetInnerHTML={{__html: "Ubicá a CG-001 en el árbol filogenético usando la <strong>matriz de distancias genómicas</strong>."}} />
+        <div className="mg-objective-hint">El valor más bajo en la fila de CG-001 indica el organismo más cercano evolutivamente.</div>
+      </div>
+        <div className="mg-subtitle">{d.subtitle}</div>
+        <div className="mg-lives-warning">{d.lives_warning}</div>
+      </div>
+
+      <div className="mg-section-label">◆ Matriz de distancias genómicas (fila CG001 resaltada):</div>
+      <div className="distance-matrix">
+        <table>
+          <thead>
+            <tr>
+              <th>—</th>
+              {d.organisms.map(o => <th key={o}>{o.replace(/_/g," ")}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {d.matrix.map((row, i) => (
+              <tr key={i} className={i===4 ? "cg-row" : ""}>
+                <th className="dm-row-header">{d.organisms[i].replace(/_/g," ")}</th>
+                {row.map((val, j) => (
+                  <td key={j} className={`${val===0?"dm-self":""} ${val<0.3&&val>0?"dm-low":""} ${val>0.85?"dm-high":""} ${(i===4||j===4)&&val>0?"dm-highlight":""}`}>
+                    {val.toFixed(2)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="dm-legend">
+        <span style={{color:"var(--glow)"}}>■ &lt;0.30 cercano</span>
+        <span style={{color:"var(--red)"}}>■ &gt;0.85 lejano</span>
+        <span style={{color:"var(--amber)"}}>■ fila/col CG001</span>
+      </div>
+
+      <div className="mg-section-label">◆ Cladograma — haz clic donde ubicarías CG-001:</div>
+      <HintBtn
+        hint="Busca el valor más bajo en la fila 'AGENTE CG001'. Ese organismo es el más cercano evolutivamente. Ubica CG001 dentro de su dominio."
+        onUse={() => onScoreBonus(-5, "Pista usada −5 pts")}
+        disabled={submitted}
+      />
+      <div className="phylo-container">
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%", maxHeight:310, display:"block"}}>
+          {/* LUCA root label */}
+          <text x={xRoot} y={H/2+5} fill="var(--glow2)"
+            style={{fontSize:20,fontFamily:"'Share Tech Mono',monospace",letterSpacing:2}}>
+            LUCA
+          </text>
+          {/* Dashed root line */}
+          <line x1={xRoot+32} y1={H/2} x2={xInternal} y2={H/2}
+            stroke="rgba(15,61,30,0.6)" strokeWidth={1} strokeDasharray="4,3" />
+          {/* Vertical backbone */}
+          <line x1={xInternal} y1={leaves[0].y} x2={xInternal} y2={leaves[3].y}
+            stroke="var(--border)" strokeWidth={2} />
+
+          {leaves.map(leaf => {
+            const dist = d.matrix[4][leaf.distIdx];
+            const isClosest = dist === Math.min(...d.matrix[4].slice(0,4));
+            return (
+              <g key={leaf.id}>
+                <line x1={xInternal} y1={leaf.y} x2={xLeaf} y2={leaf.y}
+                  stroke={isClosest ? "rgba(0,196,83,0.4)" : "var(--border)"} strokeWidth={isClosest?2:1.5} />
+                <circle cx={xLeaf} cy={leaf.y} r={8}
+                  fill="rgba(7,26,16,0.95)"
+                  stroke={isClosest ? "var(--glow2)" : "var(--border)"}
+                  strokeWidth={isClosest?2:1.5}
+                />
+                <text x={xLabel} y={leaf.y+4} fill={isClosest?"var(--glow3)":"var(--text)"}
+                  style={{fontSize:20,fontFamily:"'Share Tech Mono',monospace"}}>
+                  {leaf.label}
+                </text>
+                <text x={xLabel+62} y={leaf.y+4}
+                  fill={isClosest?"var(--glow)":"var(--muted)"}
+                  style={{fontSize:18,fontFamily:"'Share Tech Mono',monospace",fontWeight:isClosest?"700":"300"}}>
+                  d={dist.toFixed(2)}{isClosest?" ← min":""}
+                </text>
+              </g>
+            );
+          })}
+
+          {positions.map(pos => {
+            const parentLeaf = leaves.find(l => l.id === pos.leafId);
+            if (!parentLeaf) return null;
+            const isSel   = selected === pos.id;
+            const isOk    = submitted && pos.id === d.correct_pos;
+            const isBad   = submitted && isSel && pos.id !== d.correct_pos;
+            return (
+              <g key={pos.id} style={{cursor: submitted ? "default" : "pointer"}}
+                onClick={() => !submitted && setSelected(pos.id)}>
+                <line x1={xLeaf+10} y1={parentLeaf.y} x2={xPos} y2={parentLeaf.y}
+                  stroke={isSel?"var(--amber)":isOk?"var(--glow)":"rgba(15,61,30,0.5)"}
+                  strokeWidth={isSel||isOk?1.5:1} strokeDasharray={isSel||isOk?"":"3,2"} />
+                <rect x={xPos} y={parentLeaf.y-17} width={100} height={32} rx={2}
+                  fill={isOk?"rgba(0,255,106,0.1)":isBad?"rgba(255,45,85,0.1)":isSel?"rgba(255,183,0,0.07)":"rgba(7,26,16,0.85)"}
+                  stroke={isOk?"var(--glow)":isBad?"var(--red)":isSel?"var(--amber)":"var(--border)"}
+                  strokeWidth={isSel||isOk||isBad?1.5:1}
+                />
+                <text x={xPos+50} y={parentLeaf.y-4} fill={isOk?"var(--glow)":isBad?"var(--red)":isSel?"var(--amber)":"var(--purple)"}
+                  textAnchor="middle" style={{fontSize:18,fontFamily:"'Orbitron',monospace",letterSpacing:1}}>
+                  CG-001?
+                </text>
+                <text x={xPos+50} y={parentLeaf.y+10} fill={isSel?"var(--amber)":"var(--muted)"}
+                  textAnchor="middle" style={{fontSize:16,fontFamily:"'Share Tech Mono',monospace"}}>
+                  {pos.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {submitted && (
+        <div className={selected===d.correct_pos?"alert-success":"alert-danger"} style={{fontSize:22,marginBottom:10}}>
+          {selected===d.correct_pos ? d.explanation_correct : d.explanation_wrong}
+        </div>
+      )}
+      {!submitted && (
+        <button className="action-btn" disabled={!selected} onClick={submitTree}>
+          Ubicar CG-001 en el árbol →
+        </button>
+      )}
+
+      {phase === "q2" && (
+        <div style={{marginTop:18,animation:"fade-in 0.4s ease forwards"}}>
+          <div className="mg-section-label">◆ {d.question2.text}</div>
+          <div className="choices-container">
+            {d.question2.options.map((opt,i) => (
+              <button key={i}
+                className={`choice-btn ${q2Answer===i?"selected":""} ${q2Submitted && i===d.question2.correct?"correct":""} ${q2Submitted && q2Answer===i && i!==d.question2.correct?"wrong":""}`}
+                onClick={() => !q2Submitted && setQ2Answer(i)}
+                disabled={q2Submitted}
+              >
+                <span className="choice-num">{String(i+1).padStart(2,"0")}</span>{opt}
+              </button>
+            ))}
+          </div>
+          {q2Submitted && <div className="alert-info" style={{marginTop:10,fontSize:22}}>{d.question2.explanation}</div>}
+          {!q2Submitted && <button className="action-btn" disabled={q2Answer===null} onClick={submitQ2} style={{marginTop:10}}>Confirmar interpretación →</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// MG4 — MUTATION CLASSIFICATION (with timer)
+// ══════════════════════════════════════════════
+function MutationMinigame({ onComplete, onLoseLive, onScoreBonus }) {
+  const d = MG4_DATA;
+  const mounted = useMounted();
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState({});
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [currentPair, setCurrentPair] = useState(0);
+  const allDone = d.pairs.every(p => submitted[p.id]);
+
+  const handleTimerExpire = useCallback(() => {
+    if (!mounted.current) return;
+    const unanswered = d.pairs.filter(p => !submitted[p.id]);
+    if (unanswered.length > 0) {
+      setTimerPaused(true);
+      const newSub = {};
+      unanswered.forEach(p => { newSub[p.id] = true; });
+      setSubmitted(prev => ({...prev, ...newSub}));
+      onLoseLive({
+        reason: `El tiempo se agotó con ${unanswered.length} mutación(es) sin clasificar.`,
+        lesson: "En análisis de crisis: SNP = 1 base cambia; inserción = secuencia más larga; deleción = secuencia más corta; frameshift = inserción/deleción no múltiplo de 3."
+      });
+    }
+  }, [submitted, d.pairs, onLoseLive, mounted]);
+
+  useEffect(() => {
+    if (allDone) {
+      setTimerPaused(true);
+      setTimeout(() => { if (mounted.current) onComplete(); }, 1500);
+    }
+  }, [allDone]);
+
+  const submitPair = (pair) => {
+    const ans = answers[pair.id];
+    if (ans === undefined) return;
+    setSubmitted(prev => ({...prev, [pair.id]: true}));
+    setTimerPaused(true);
+    if (ans !== pair.correct) {
+      onLoseLive({
+        reason: `Gen ${pair.id}: seleccionaste "${pair.options[ans]}". Correcto: "${pair.options[pair.correct]}"`,
+        lesson: pair.explanation
+      });
+    } else {
+      onScoreBonus(25, `+25 pts — mutación ${pair.id}/4 correcta`);
+    }
+    setTimeout(() => { if (mounted.current) { setTimerPaused(false); setCurrentPair(p => p+1); } }, 1400);
+  };
+
+  return (
+    <div className="minigame-wrapper">
+      <div className="mg-header">
+        <div className="mg-title">{d.title}</div>
+      <div className="mg-objective">
+        <div className="mg-objective-label">▶ TU OBJETIVO</div>
+        <div className="mg-objective-text" dangerouslySetInnerHTML={{__html: "Clasificá cada mutación para determinar cuáles son <strong>reversibles con CRISPR</strong>."}} />
+        <div className="mg-objective-hint">Missense e in-frame pueden corregirse. Frameshifts son irreversibles con tecnología actual.</div>
+      </div>
+        <div className="mg-subtitle">{d.subtitle}</div>
+        <div className="mg-lives-warning">{d.lives_warning}</div>
+      </div>
+      {!allDone && <CountdownTimer seconds={120} paused={timerPaused} onExpire={handleTimerExpire} />}
+      <div className="mut-legend">
+        <span><span className="diff-ref-changed">X</span>/<span className="diff-mut-changed">X</span> = sustitución SNP</span>
+        <span><span className="base-inserted">X</span> = inserción</span>
+        <span><span className="diff-deleted">X</span> = deleción</span>
+        <span><span className="diff-gap">∅</span> = posición eliminada</span>
+      </div>
+
+      {d.pairs.map((pair, idx) => {
+        const ans = answers[pair.id];
+        const done = submitted[pair.id];
+        const correct = done && ans === pair.correct;
+        const isActive = idx === currentPair && !done;
+        return (
+          <div key={pair.id}
+            className={`mut-pair ${done?(correct?"answered-correct":"answered-wrong"):""} ${isActive?"active-pair":""}`}
+          >
+            <div className="mut-pair-header">
+              <div className="mut-pair-label">Gen {pair.id}/4 — {pair.gene}</div>
+              {done && <span className={`mut-result-badge ${correct?"badge-ok":"badge-err"}`}>{correct?"✓ CORRECTO":"✗ ERROR"}</span>}
+            </div>
+            <div className="mut-context">{pair.context}</div>
+            <SeqDiff refSeq={pair.ref} mutSeq={pair.mut} />
+            <div className="mut-options">
+              {pair.options.map((opt, i) => (
+                <button key={i}
+                  className={`mut-opt ${ans===i?"selected":""} ${done&&i===pair.correct?"correct":""} ${done&&ans===i&&i!==pair.correct?"wrong":""}`}
+                  onClick={() => !done && setAnswers(prev => ({...prev, [pair.id]: i}))}
+                  disabled={done}
+                >{opt}</button>
+              ))}
+            </div>
+            {!done && isActive && (
+              <button className="action-btn" disabled={ans===undefined}
+                onClick={() => submitPair(pair)} style={{marginTop:8,fontSize:18,padding:"6px 14px"}}>
+                Clasificar →
+              </button>
+            )}
+            {done && <div className={`mg-explanation ${correct?"ok":"err"}`}>{pair.explanation}</div>}
+          </div>
+        );
+      })}
+      {allDone && (
+        <div className={d.pairs.filter(p=>submitted[p.id]&&answers[p.id]===p.correct).length >= d.pass_threshold ? "alert-success":"alert-warn"}
+          style={{marginTop:12,fontSize:22}}>
+          {`${d.pairs.filter(p=>submitted[p.id]&&answers[p.id]===p.correct).length}/${d.pairs.length} correctas — `}
+          {d.pairs.filter(p=>submitted[p.id]&&answers[p.id]===p.correct).length >= d.pass_threshold
+            ? "Análisis aprobado. Continuando misión."
+            : "Análisis parcial. La misión continúa con datos incompletos."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SCORE TOAST ───────────────────────────────
+function ScoreToast({ message, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, []);
+  return <div className="score-toast">{message}</div>;
+}
+
+function PostCredits() {
+  return (
+    <div className="post-credits">
+      <div className="post-credits-text">
+        LABORATORIO ABANDONADO — 03:47 AM<br/><br/>
+        La pantalla vieja se enciende sola.<br/><br/>
+        <span style={{fontSize:28,letterSpacing:4,color:"#a78bfa"}}>
+          NUEVA SECUENCIA DETECTADA<br/>
+          ORIGEN: DESCONOCIDO<br/>
+          CLASIFICACIÓN: ???
+        </span>
+        <br/><br/>
+        <span style={{fontSize:44,letterSpacing:8}}>CORTE.</span>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// MAIN GAME
+// ══════════════════════════════════════════════
+function Game() {
+  const [showSplash, setShowSplash]   = useState(true);
+  const [sceneKey, setSceneKey]       = useState("INTRO");
+  const [audioOn, setAudioOn]         = useState(true);
+  const audioStarted                  = useRef(false);
+  const initAudio = useCallback(() => {
+    if (audioStarted.current) return;
+    audioStarted.current = true;
+    try { window.AudioEngine && window.AudioEngine.startAmbient(); } catch(e) {}
+  }, []);
+  const toggleAudio = useCallback(() => {
+    if (!window.AudioEngine) return;
+    const next = !audioOn; setAudioOn(next);
+    window.AudioEngine.setEnabled(next);
+    try { next ? window.AudioEngine.startAmbient() : window.AudioEngine.stopAmbient(); } catch(e) {}
+  }, [audioOn]);
+  const [stepIdx, setStepIdx]         = useState(0);
+  const [showChoices, setShowChoices] = useState(false);
+  const [showContinue, setShowContinue] = useState(false);
+  const [lives, setLives]             = useState(MAX_LIVES);
+  const [score, setScore]             = useState(0);
+  const [postCredits, setPostCredits] = useState(false);
+  const [gameOver, setGameOver]       = useState(null);
+  const [flashRed, setFlashRed]       = useState(false);
+  const [pendingPenalty, setPendingPenalty] = useState(null);
+  const [toasts, setToasts]           = useState([]);
+  const containerRef = useRef(null);
+  const gameOverRef  = useRef(false);
+
+  const scenes = SCENES;
+  const scene  = scenes[sceneKey];
+
+  useEffect(() => {
+    if (containerRef.current)
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+  });
+
+  const triggerFlash = () => {
+    setFlashRed(true);
+    setTimeout(() => setFlashRed(false), 600);
+  };
+
+  const addToast = (msg) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev.slice(-3), { id, msg }]);
+  };
+  const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+
+  const handleScoreBonus = useCallback((pts, msg) => {
+    setScore(prev => Math.max(0, prev + pts));
+    addToast(pts > 0 ? `+${pts} pts` : `${pts} pts`);
+  }, []);
+
+  const loseLive = useCallback((info) => {
+    if (gameOverRef.current) return;
+    triggerFlash();
+    setLives(prev => {
+      const n = prev - 1;
+      if (n <= 0 && !gameOverRef.current) {
+        gameOverRef.current = true;
+        setTimeout(() => {
+          setGameOver({ reason: info.reason, lesson: info.lesson, retryScene: sceneKey, retryStep: stepIdx });
+        }, 300);
+        return 0;
+      }
+      return n;
+    });
+  }, [sceneKey, stepIdx]);
+
+  const handleLoseLive = useCallback(loseLive, [loseLive]);
+
+  const goNext = useCallback((nextKey) => {
+    initAudio();
+    try { window.AudioEngine && window.AudioEngine.play("sceneTransition"); } catch(e) {}
+    const key = nextKey || scene.next;
+    setSceneKey(key); setStepIdx(0);
+    setShowChoices(false); setShowContinue(false); setPendingPenalty(null);
+    setScore(prev => prev + 10);
+  }, [scene]);
+
+  const handleStepDone = useCallback(() => {
+    if (scene.type !== "sequence") return;
+    const step = scene.steps[stepIdx];
+    if (step.choices) setShowChoices(true);
+    else setShowContinue(true);
+  }, [scene, stepIdx]);
+
+  const handleChoice = useCallback((choice) => {
+    if (choice.penalty) {
+      triggerFlash();
+      setLives(prev => {
+        const n = prev - 1;
+        if (n <= 0 && !gameOverRef.current) {
+          gameOverRef.current = true;
+          setTimeout(() => {
+            setGameOver({ reason: choice.penalty.reason, lesson: choice.penalty.lesson, retryScene: sceneKey, retryStep: stepIdx });
+          }, 300);
+          return 0;
+        }
+        return n;
+      });
+      setPendingPenalty({ ...choice.penalty, next: choice.next });
+      setShowChoices(false);
+    } else {
+      goNext(choice.next);
+    }
+  }, [goNext, sceneKey, stepIdx]);
+
+  const handleContinue = useCallback(() => {
+    const next = stepIdx + 1;
+    if (next < scene.steps.length) {
+      setStepIdx(next); setShowChoices(false); setShowContinue(false); setPendingPenalty(null);
+    } else { goNext(); }
+  }, [scene, stepIdx, goNext]);
+
+  const handleRetry = () => {
+    gameOverRef.current = false;
+    setLives(MAX_LIVES);
+    setSceneKey(gameOver.retryScene); setStepIdx(gameOver.retryStep);
+    setShowChoices(false); setShowContinue(false); setPendingPenalty(null);
+    setGameOver(null);
+  };
+
+  const handleRestart = () => {
+    gameOverRef.current = false;
+    setLives(MAX_LIVES); setScore(0);
+    setSceneKey("INTRO"); setStepIdx(0);
+    setShowChoices(false); setShowContinue(false); setPendingPenalty(null);
+    setGameOver(null); setToasts([]);
+  };
+
+  if (postCredits) return <PostCredits />;
+  if (gameOver) return <GameOverScreen reason={gameOver.reason} lesson={gameOver.lesson} onRetry={handleRetry} onRestart={handleRestart} />;
+
+  const currentStep = scene.type === "sequence" ? scene.steps[stepIdx] : null;
+
+  return (
+    <>
+    {showSplash && <SplashScreen onBegin={() => setShowSplash(false)} />}
+    <div className="game-root">
+      <DnaCanvas />
+      <div className="scanlines" />
+      <div className="vignette" />
+      {flashRed && <div className="life-lost-overlay" />}
+      <div className="toast-container">
+        {toasts.map(t => <ScoreToast key={t.id} message={t.msg} onDone={() => removeToast(t.id)} />)}
+      </div>
+
+      <div className="game-container" ref={containerRef}>
+        <div className="hud-bar">
+          <div className="hud-title">OUTBREAK: CÓDIGO GENÉTICO</div>
+          <div className="hud-center">
+            <LivesDisplay lives={lives} />
+            <div className="hud-score">PUNTUACIÓN: {score}</div>
+          </div>
+          <div className="hud-status" onClick={initAudio}><span className="hud-dot"/>SISTEMA ACTIVO — 2035</div>
+          <button className="mute-btn" onClick={() => { initAudio(); toggleAudio(); }}>{audioOn ? "♪" : "♪✕"}</button>
+        </div>
+
+        <div className="scene-label" key={sceneKey}>{SCENE_LABELS[sceneKey] || sceneKey}</div>
+
+        {scene.type === "sequence" && currentStep && (
+          <div key={`${sceneKey}-${stepIdx}`}>
+            {currentStep.alert && <AlertBar type={currentStep.alert.type} msg={currentStep.alert.msg} />}
+            <NarrativeBox speaker={currentStep.speaker} speakerClass={currentStep.speakerClass}
+              text={currentStep.text} speed={18} onDone={handleStepDone} />
+            {showChoices && currentStep.choices && !pendingPenalty && (
+              <div className="choices-container">
+                {currentStep.choices.map((c, i) => (
+                  <button key={i} className="choice-btn" onClick={() => handleChoice(c)}>
+                    <span className="choice-num">{String(i+1).padStart(2,"0")}</span>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {pendingPenalty && (
+              <PenaltyBox penalty={pendingPenalty}
+                onClose={() => { setPendingPenalty(null); goNext(pendingPenalty.next); }} />
+            )}
+            {showContinue && !showChoices && !pendingPenalty && (
+              <div className="continue-wrap">
+                <button className="continue-btn" onClick={handleContinue}>Continuar →</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {scene.type === "minigame" && scene.game === "blast" && (
+          <BlastMinigame key={sceneKey} onComplete={() => goNext()} onLoseLive={handleLoseLive} onScoreBonus={handleScoreBonus} />
+        )}
+        {scene.type === "minigame" && scene.game === "codon" && (
+          <CodonMinigame key={sceneKey} onComplete={() => goNext()} onLoseLive={handleLoseLive} onScoreBonus={handleScoreBonus} />
+        )}
+        {scene.type === "minigame" && scene.game === "phylo" && (
+          <PhyloMinigame key={sceneKey} onComplete={() => goNext()} onLoseLive={handleLoseLive} onScoreBonus={handleScoreBonus} />
+        )}
+        {scene.type === "minigame" && scene.game === "mutations" && (
+          <MutationMinigame key={sceneKey} onComplete={() => goNext()} onLoseLive={handleLoseLive} onScoreBonus={handleScoreBonus} />
+        )}
+
+        {scene.type === "decision" && (
+          <div key={sceneKey}>
+            <div className="narrative-box">
+              <div className="char-label char-player">MOMENTO DECISIVO</div>
+              <p className="narrative-text">{scene.text}</p>
+            </div>
+            <div className="decision-panel">
+              {scene.options.map((o, i) => (
+                <button key={i} className="decision-btn" onClick={() => goNext(o.next)}>
+                  <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:20,color:"var(--amber)",marginRight:12}}>
+                    {String.fromCharCode(65+i)} —
+                  </span>
+                  {o.label}
+                  {o.sublabel && <div style={{fontSize:20,color:"var(--muted)",marginTop:4,fontFamily:"'Share Tech Mono',monospace"}}>↳ {o.sublabel}</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {scene.type === "ending" && (
+          <div className="ending-screen" key={sceneKey}>
+            <div className="ending-title">{scene.title}</div>
+            <div className="ending-subtitle">{scene.subtitle}</div>
+            <div className="ending-quote">{scene.quote}</div>
+            <div className="ending-score">Vidas: {lives}/{MAX_LIVES} · Puntuación: {score}</div>
+            <button className="restart-btn" onClick={() => setPostCredits(true)}>Ver escena post-créditos →</button>
+            <br/>
+            <button className="restart-btn" onClick={handleRestart}>↺ Reiniciar historia</button>
+          </div>
+        )}
+      </div>
+    </div>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<Game />);
+</script>
+</body>
+</html>
