@@ -1747,7 +1747,7 @@ const SCENES = {
       text:"Pensamos que era contaminación de muestra. Error de secuenciación.\n\nHasta que llegó el segundo caso. Desde Nigeria. Con la misma firma genética exacta.",
       choices:[
         { label:"¿Cuántos casos hay ahora?", next:"SCENE3", safe:true },
-        { label:"¿Podría ser coincidencia — secuencias similares aparecen naturalmente.", next:"SCENE3", safe:false,
+        { label:"¿Podría ser coincidencia — secuencias similares aparecen naturalmente?", next:"SCENE3", safe:false,
           penalty:{
             reason:"Descartaste una señal epidemiológica significativa como coincidencia.",
             lesson:"En epidemiología genómica, dos casos con firma idéntica en continentes distintos en 72 horas tiene probabilidad de coincidencia cercana a cero. El escepticismo prematuro sin análisis cuantitativo es tan peligroso como el pánico.",
@@ -1776,7 +1776,7 @@ const SCENES = {
     { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
       text:"Pseudomonas con un SNP en la proteína de adhesión. Eso debería hacerlo menos efectivo, no más.\n\n¿Cómo está propagándose así?" },
     { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
-      text:"Por eso necesitamos el análisis de mRNA. Si hay un codon de stop prematuro, la proteína queda truncada.\nPero algunos fragmentos truncados son más activos que la proteína completa.",
+      text:"Por eso necesitamos el análisis de mRNA. Si hay un codón de stop prematuro, la proteína queda truncada.\nPero algunos fragmentos truncados son más activos que la proteína completa.",
       choices:[
         { label:"Tiene sentido — un dominio funcional puede quedar expuesto en la forma truncada.", next:"SCENE5", safe:true },
         { label:"Eso no tiene sentido — una proteína truncada siempre pierde función.", next:"SCENE5", safe:false,
@@ -1794,7 +1794,7 @@ const SCENES = {
       text:"La pantalla muestra el mRNA del gen de adhesión mutante. Ocho codones.\nAlgo en el tercero no encaja.",
       alert:{ type:"warn", msg:"◆ mRNA CG-001 GEN-ADHESIÓN — CARGADO — ANALIZAR CODONES" } },
     { speaker:"ANALISTA — Ing. Tomas Reyes", speakerClass:"char-analista",
-      text:"Si hay un stop en posición 3, la proteína tiene dos aminoácidos funcionales.\n¿Cómo puede algo tan pequeño ser tan efectivo??" },
+      text:"Si hay un stop en posición 3, la proteína tiene dos aminoácidos funcionales.\n¿Cómo puede algo tan pequeño ser tan efectivo?" },
     { speaker:"MENTORA — Dra. Elena Vargas", speakerClass:"char-mentora",
       text:"Los péptidos cortos pueden tener afinidades extraordinarias. El veneno de algunas serpientes son péptidos de 8 aminoácidos.\n\n(Se inclina hacia la pantalla.)\n\nNecesito dos cosas: en qué posición cae el codón de stop, y qué tipo de mutación lo generó. Missense, nonsense o frameshift — los tres tienen consecuencias terapéuticas distintas." },
   ], next:"MG2" },
